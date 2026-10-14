@@ -7,8 +7,13 @@ sem refazer o site.
 1. **Preencher `site.json`** (WhatsApp, e-mail, Instagram, endereço, chave PIX, nome do favorecido, lista de necessidades).
    Campo `null` = não aparece no site.
 2. **Gerar**: `npm install` e `npm run build` (ou usar o arquivo `site-pe-no-chao.zip` já pronto).
-3. **Enviar** todo o conteúdo de `dist/` (inclusive o arquivo oculto `.htaccess`) para a pasta do subdomínio na GGsistemas.
-4. **DNS (Registro.br)**: CNAME `projetopenochao` → `renato.ggsistemas.dev.br.`
+3. **Publicar**: GitHub Pages (veja abaixo).
+4. **DNS**: já está pronto (CNAME projetopenochao → guiapolinario.github.io).
 5. **SSL** ativado na hospedagem.
 
 Para atualizar o conteúdo depois, basta editar o `site.json` direto no servidor.
+
+## Publicação (GitHub Pages — é onde a GGsistemas está hospedada)
+1. GitHub → repositório `projeto-pe-no-chao` → **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+2. Em **Custom domain** informe `projetopenochao.ggsistemas.dev.br` e salve; depois marque **Enforce HTTPS**.
+3. Aba **Actions → Publicar site (GitHub Pages) → Run workflow** (ou qualquer envio de código à branch).

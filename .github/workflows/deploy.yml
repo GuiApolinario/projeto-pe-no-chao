@@ -1,47 +1,42 @@
-name: Publicar na GGsistemas
+name: Publicar site (GitHub Pages)
 
-# Publica o site (pasta dist/) no servidor da GGsistemas por FTP/FTPS.
-# Configure em GitHub → Settings → Secrets and variables → Actions:
-#   Secrets:   VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, FTP_SERVIDOR, FTP_USUARIO, FTP_SENHA
-#   Variables: FTP_PASTA (ex.: /public_html/projetopenochao/ — confirme com a GGsistemas)
+# Publica o site em https://projetopenochao.ggsistemas.dev.br
+# Pré-requisito (uma vez): Settings → Pages → Source = "GitHub Actions".
 on:
   push:
-    branches: [main]
+    branches: [main, claude/sweet-maxwell-6butz2]
   workflow_dispatch:
 
-concurrency: publicar
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
 
 jobs:
   publicar:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: Verificar configuração
-        env:
-          FTP_SERVIDOR: ${{ secrets.FTP_SERVIDOR }}
-          SUPA: ${{ secrets.VITE_SUPABASE_URL }}
-        run: |
-          if [ -z "$FTP_SERVIDOR" ] || [ -z "$SUPA" ]; then
-            echo "::error::Configure os secrets VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, FTP_SERVIDOR, FTP_USUARIO e FTP_SENHA (veja docs/INSTALACAO.md)."
-            exit 1
-          fi
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
       - run: npm test
-      - name: Build de produção
-        run: npm run build
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-      - name: Enviar por FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      # Sem VITE_SUPABASE_*: gera a versão simples do site (sem sistema administrativo).
+      - run: npm run build
+      # O GitHub Pages não reescreve rotas: 404.html = index.html faz /doe e /contato funcionarem.
+      - run: cp dist/index.html dist/404.html
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
         with:
-          server: ${{ secrets.FTP_SERVIDOR }}
-          username: ${{ secrets.FTP_USUARIO }}
-          password: ${{ secrets.FTP_SENHA }}
-          protocol: ftps
-          local-dir: ./dist/
-          server-dir: ${{ vars.FTP_PASTA || './' }}
+          path: dist
+      - id: deploy
+        uses: actions/deploy-pages@v4

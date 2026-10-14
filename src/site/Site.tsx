@@ -9,6 +9,7 @@ import { cx } from '../components/ui';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export interface ConfigSite {
+  necessidades?: { titulo: string; descricao?: string; prioridade?: string }[];
   pix_chave?: string | null; pix_tipo?: string | null; pix_nome?: string | null; pix_cidade?: string | null; banco_texto?: string | null;
   whatsapp?: string | null; instagram?: string | null; email?: string | null; endereco?: string | null; texto_sobre?: string | null;
   mostrar_transparencia?: boolean; campanha_titulo?: string | null; campanha_meta?: string | null; campanha_arrecadado?: string | null;
@@ -18,7 +19,11 @@ let cacheConfig: Promise<ConfigSite> | null = null;
 export function useConfigSite() {
   const [c, setC] = useState<ConfigSite | null>(null);
   useEffect(() => {
-    if (!supabaseConfigurado) { setC({}); return; }
+    if (!supabaseConfigurado) {
+      cacheConfig ??= fetch('/site.json', { cache: 'no-cache' }).then((r) => r.json()).catch(() => ({}));
+      cacheConfig.then(setC);
+      return;
+    }
     cacheConfig ??= Promise.resolve(supabase.from('configuracoes').select('valor').eq('chave', 'site').maybeSingle()).then(({ data }) => (data?.valor as ConfigSite) ?? {});
     cacheConfig.then(setC);
   }, []);
@@ -104,7 +109,7 @@ export function LayoutSite() {
             <p className="font-semibold text-white">Transparência</p>
             {c?.mostrar_transparencia && <Link to="/transparencia" className="block hover:text-white">Prestação de contas</Link>}
             <Link to="/privacidade" className="block hover:text-white">Privacidade e proteção de dados</Link>
-            <Link to="/entrar" className="inline-flex items-center gap-1.5 text-slate-400 hover:text-white"><Lock className="h-3.5 w-3.5" />Área da equipe</Link>
+            {supabaseConfigurado && <Link to="/entrar" className="inline-flex items-center gap-1.5 text-slate-400 hover:text-white"><Lock className="h-3.5 w-3.5" />Área da equipe</Link>}
           </div>
         </div>
         <p className="border-t border-slate-800 py-4 text-center text-xs text-slate-500">© {new Date().getFullYear()} Projeto Pé no Chão · Votorantim/SP</p>
@@ -124,6 +129,7 @@ export function Inicio() {
     supabase.from('necessidades').select('*').eq('ativo', true).order('ordem').limit(6).then(({ data }) => setNec(data || []));
   }, []);
   const atividades = tr?.atividades_recentes ?? [];
+  const necessidades = supabaseConfigurado ? nec : (c?.necessidades ?? []).map((n, i) => ({ id: i, ...n }));
   const meta = Number(c?.campanha_meta || 0), arrec = Number(c?.campanha_arrecadado || 0);
 
   return (
@@ -135,7 +141,7 @@ export function Inicio() {
           <div>
             <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-semibold text-sol-700 shadow-sm ring-1 ring-sol-200"><Sun className="h-4 w-4" />Votorantim · São Paulo</p>
             <h1 className="font-titulo text-4xl font-extrabold leading-[1.05] text-slate-900 sm:text-6xl">Infância com <span className="text-marca-rosa">pé no chão</span>, <span className="text-marca-azul">sol</span> e <span className="text-marca-verde">alegria</span>.</h1>
-            <p className="mt-5 max-w-xl text-lg text-slate-600">O Projeto Pé no Chão realiza ações com crianças e com a comunidade nos bairros Jardim Dandara e Jardim Cerrado. Cada doação vira brincadeira, aprendizado e cuidado — com prestação de contas aberta.</p>
+            <p className="mt-5 max-w-xl text-lg text-slate-600">O Projeto Pé no Chão realiza ações com crianças e com a comunidade nos bairros Jardim Dandara e Jardim Cerrado. Cada doação vira brincadeira, aprendizado e cuidado.</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link to="/doe" className="inline-flex items-center gap-2 rounded-full bg-marca-rosa px-7 py-3.5 text-base font-bold text-white shadow-lg shadow-pink-200 hover:brightness-110"><Heart className="h-5 w-5 fill-white" />Quero doar</Link>
               <Link to="/doe#voluntario" className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-base font-bold text-slate-800 ring-2 ring-slate-900 hover:bg-slate-50"><HandHeart className="h-5 w-5" />Ser voluntário</Link>
@@ -161,7 +167,7 @@ export function Inicio() {
             )}
           </div>
           <div className="grid grid-cols-2 gap-3">
-            {[[Users, 'Crianças no centro', 'bg-pink-50 text-marca-rosa'], [Sun, 'Convivência e brincadeira', 'bg-sol-50 text-sol-700'], [Package, 'Doações bem cuidadas', 'bg-blue-50 text-marca-azul'], [Check, 'Contas abertas', 'bg-green-50 text-marca-verde']].map(([Ic, t, cl]: any) => (
+            {[[Users, 'Crianças no centro', 'bg-pink-50 text-marca-rosa'], [Sun, 'Convivência e brincadeira', 'bg-sol-50 text-sol-700'], [Package, 'Doações bem cuidadas', 'bg-blue-50 text-marca-azul'], [Check, 'Cuidado com cada doação', 'bg-green-50 text-marca-verde']].map(([Ic, t, cl]: any) => (
               <div key={t} className={cx('flex flex-col gap-2 rounded-2xl p-5', cl)}><Ic className="h-7 w-7" /><p className="font-titulo text-lg font-bold leading-tight text-slate-800">{t}</p></div>
             ))}
           </div>
@@ -187,7 +193,7 @@ export function Inicio() {
           <Titulo sobre="Como ajudar" centro>Toda ajuda faz diferença</Titulo>
           <div className="grid gap-5 md:grid-cols-3">
             {[
-              ['Doe pelo PIX', 'Rápido e seguro. Toda entrada é registrada no nosso sistema de prestação de contas.', '/doe', '#E83E8C'],
+              ['Doe pelo PIX', 'Rápido e seguro: leia o QR Code ou copie a chave PIX do projeto.', '/doe', '#E83E8C'],
               ['Doe alimentos e materiais', 'Veja a lista do que mais precisamos agora e combine a entrega.', '/doe#bens', '#2457C5'],
               ['Seja voluntário', 'Tem um tempinho e um talento? Venha somar com a gente nas atividades.', '/doe#voluntario', '#7CB342'],
             ].map(([t, d, l, cor]) => (
@@ -199,10 +205,10 @@ export function Inicio() {
               </Link>
             ))}
           </div>
-          {nec.length > 0 && (
+          {necessidades.length > 0 && (
             <div className="mt-10 rounded-3xl bg-white p-6 ring-1 ring-slate-100">
               <p className="mb-3 font-titulo text-xl font-bold">Precisamos agora</p>
-              <ul className="flex flex-wrap gap-2">{nec.map((n) => <li key={n.id} className={cx('rounded-full px-4 py-1.5 text-sm font-semibold', n.prioridade === 'alta' ? 'bg-pink-100 text-pink-800' : 'bg-sol-100 text-slate-800')}>{n.titulo}</li>)}</ul>
+              <ul className="flex flex-wrap gap-2">{necessidades.map((n) => <li key={n.id} className={cx('rounded-full px-4 py-1.5 text-sm font-semibold', n.prioridade === 'alta' ? 'bg-pink-100 text-pink-800' : 'bg-sol-100 text-slate-800')}>{n.titulo}</li>)}</ul>
             </div>
           )}
         </div>
@@ -227,8 +233,8 @@ export function Inicio() {
       <section className="bg-marca-azul">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 py-14 text-center text-white md:flex-row md:text-left">
           <div className="flex-1">
-            <h2 className="font-titulo text-3xl font-extrabold">Transparência é parte do nosso jeito de fazer</h2>
-            <p className="mt-2 text-blue-100">Cada real recebido e cada compra realizada são registrados com comprovante e conferidos antes de entrar na prestação de contas.</p>
+            <h2 className="font-titulo text-3xl font-extrabold">{c?.mostrar_transparencia ? 'Transparência é parte do nosso jeito de fazer' : 'Vamos conversar?'}</h2>
+            <p className="mt-2 text-blue-100">{c?.mostrar_transparencia ? 'Cada real recebido e cada compra realizada são registrados com comprovante e conferidos antes de entrar na prestação de contas.' : 'Quer conhecer o projeto, ajudar ou propor uma parceria? Fale com a gente.'}</p>
           </div>
           {c?.mostrar_transparencia ? <Link to="/transparencia" className="rounded-full bg-white px-7 py-3 font-bold text-marca-azul hover:bg-blue-50">Ver prestação de contas</Link>
             : <Link to="/contato" className="rounded-full bg-white px-7 py-3 font-bold text-marca-azul hover:bg-blue-50">Fale com a gente</Link>}
@@ -239,7 +245,24 @@ export function Inicio() {
 }
 
 // ------------------------------------------------------------------ doe
+function ContatoDireto({ titulo, assunto }: { titulo?: string; assunto: string }) {
+  const c = useConfigSite();
+  const zap = linkWhats(c?.whatsapp, assunto);
+  return (
+    <div className="space-y-3">
+      {titulo && <p className="font-titulo text-xl font-bold">{titulo}</p>}
+      {zap && <a href={zap} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 rounded-full bg-[#25D366] px-6 py-3 font-bold text-white"><MessageCircle className="h-5 w-5" />Chamar no WhatsApp</a>}
+      {c?.email && <a href={`mailto:${c.email}?subject=${encodeURIComponent(assunto)}`} className="flex items-center justify-center gap-2 rounded-full bg-slate-900 px-6 py-3 font-bold text-white"><Mail className="h-5 w-5" />Enviar e-mail</a>}
+      {!zap && !c?.email && <p className="rounded-2xl bg-sol-50 p-4 text-slate-600 ring-1 ring-sol-200">Os canais de contato do projeto serão publicados aqui em breve.</p>}
+    </div>
+  );
+}
+
 function FormContato({ tipoInicial, titulo, campoMensagem = 'Mensagem' }: { tipoInicial: string; titulo?: string; campoMensagem?: string }) {
+  if (!supabaseConfigurado) {
+    const assunto = { voluntario: 'Quero ser voluntário(a) no Projeto Pé no Chão', doacao_bens: 'Quero doar alimentos/materiais para o Projeto Pé no Chão', empresa: 'Quero apoiar o Projeto Pé no Chão (empresa/parceria)' }[tipoInicial] ?? 'Olá! Gostaria de falar com o Projeto Pé no Chão.';
+    return <ContatoDireto titulo={titulo} assunto={assunto} />;
+  }
   const [v, setV] = useState({ tipo: tipoInicial, nome: '', email: '', telefone: '', mensagem: '', consentimento: false, site: '' });
   const [estado, setEstado] = useState<'livre' | 'enviando' | 'ok' | 'erro'>('livre');
   async function enviar(e: React.FormEvent) {
@@ -319,6 +342,7 @@ export function Doe() {
   const [nec, setNec] = useState<any[]>([]);
   const local = useLocation();
   useEffect(() => { if (supabaseConfigurado) supabase.from('necessidades').select('*').eq('ativo', true).order('ordem').then(({ data }) => setNec(data || [])); }, []);
+  const lista = supabaseConfigurado ? nec : (c?.necessidades ?? []).map((n, i) => ({ id: i, ...n }));
   useEffect(() => { if (local.hash) setTimeout(() => document.querySelector(local.hash)?.scrollIntoView({ behavior: 'smooth' }), 150); }, [local.hash, c]);
   if (!c) return <div className="py-20 text-center text-slate-500">Carregando…</div>;
   return (
@@ -327,14 +351,14 @@ export function Doe() {
         <div className="mx-auto max-w-5xl px-4 py-14">
           <Titulo sobre="Doe agora">Sua doação vira cuidado com as crianças</Titulo>
           <CaixaPix c={c} />
-          <p className="mt-4 text-center text-sm text-slate-500">Quer recibo? Envie o comprovante para nós pelo formulário de contato ou WhatsApp informando nome e CPF/CNPJ.</p>
+          <p className="mt-4 text-center text-sm text-slate-500">Dúvidas sobre a doação? Fale com a gente pelo WhatsApp ou e-mail.</p>
         </div>
       </section>
       <section id="bens" className="mx-auto max-w-5xl scroll-mt-24 px-4 py-14">
         <Titulo sobre="Doação de alimentos e materiais">Do que precisamos</Titulo>
-        {nec.length ? (
+        {lista.length ? (
           <ul className="grid gap-3 sm:grid-cols-2">
-            {nec.map((n, i) => (
+            {lista.map((n: any, i: number) => (
               <li key={n.id} className="flex gap-3 rounded-2xl bg-white p-4 ring-1 ring-slate-100">
                 <Pe cor={CORES_PES[i % CORES_PES.length]} className="h-10 w-6 shrink-0" />
                 <div><p className="font-semibold text-slate-900">{n.titulo} {n.prioridade === 'alta' && <span className="ml-1 rounded-full bg-pink-100 px-2 py-0.5 text-xs font-bold text-pink-800">urgente</span>}</p>{n.descricao && <p className="text-sm text-slate-600">{n.descricao}</p>}</div>
@@ -347,7 +371,7 @@ export function Doe() {
             <p className="font-titulo text-xl font-bold text-slate-900">Como entregar</p>
             {c.endereco ? <p className="flex gap-2"><MapPin className="mt-1 h-4 w-4 shrink-0" />{c.endereco}</p> : <p>Combine a entrega com a equipe pelo formulário ao lado.</p>}
             {linkWhats(c.whatsapp, 'Olá! Quero doar alimentos/materiais para o Projeto Pé no Chão.') && <a href={linkWhats(c.whatsapp, 'Olá! Quero doar alimentos/materiais para o Projeto Pé no Chão.')!} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full bg-[#25D366] px-5 py-2.5 font-bold text-white"><MessageCircle className="h-4 w-4" />Combinar pelo WhatsApp</a>}
-            <p className="text-sm">Doações em bens são registradas em controle próprio (separado do caixa) e o destino de cada item é anotado.</p>
+            
           </div>
           <FormContato tipoInicial="doacao_bens" titulo="Quero doar itens" campoMensagem="O que você gostaria de doar?" />
         </div>
@@ -357,7 +381,7 @@ export function Doe() {
           <div>
             <Titulo sobre="Voluntariado">Venha somar com a gente</Titulo>
             <p className="text-lg text-slate-600">Recreação, esporte, reforço escolar, cozinha, organização de doações, comunicação… Conte o que você gosta de fazer e quando tem disponibilidade.</p>
-            <p className="mt-4 text-sm text-slate-500">Empresas e parceiros: use o mesmo formulário e escolha “empresa” no assunto, ou escreva para nós.</p>
+            <p className="mt-4 text-sm text-slate-500">Empresas e parceiros também são bem-vindos: fale com a gente.</p>
           </div>
           <div className="rounded-3xl bg-white p-6 shadow-sm"><FormContato tipoInicial="voluntario" titulo="Quero ser voluntário(a)" campoMensagem="Como você gostaria de ajudar? Quais dias e horários?" /></div>
         </div>
@@ -369,7 +393,7 @@ export function Doe() {
 // ------------------------------------------------------------------ transparência
 export function Transparencia() {
   const [d, setD] = useState<any>(null);
-  useEffect(() => { supabase.rpc('transparencia_publica').then(({ data }) => setD(data ?? { ativo: false })); }, []);
+  useEffect(() => { if (!supabaseConfigurado) { setD({ ativo: false }); return; } supabase.rpc('transparencia_publica').then(({ data }) => setD(data ?? { ativo: false })); }, []);
   if (!d) return <div className="py-20 text-center text-slate-500">Carregando…</div>;
   if (!d.ativo) return <div className="mx-auto max-w-3xl px-4 py-20 text-center"><Titulo centro>Prestação de contas</Titulo><p className="text-slate-600">O portal de transparência está sendo preparado. Para informações, <Link to="/contato" className="underline">fale com a gente</Link>.</p></div>;
   return (
@@ -452,7 +476,7 @@ export function Privacidade() {
       <h3 className="font-titulo text-xl font-bold">Crianças e adolescentes</h3>
       <p>Dados de participantes são coletados com autorização dos responsáveis, no mínimo necessário, e nunca são publicados. Fotografias só são divulgadas com autorização de uso de imagem.</p>
       <h3 className="font-titulo text-xl font-bold">Doações</h3>
-      <p>Doações recebidas são registradas no sistema de prestação de contas. Nomes de doadores não são divulgados publicamente.</p>
+      <p>Nomes de doadores não são divulgados publicamente.</p>
       <h3 className="font-titulo text-xl font-bold">Seus direitos</h3>
       <p>Você pode pedir acesso, correção ou exclusão dos seus dados a qualquer momento pela página de <Link to="/contato" className="underline">contato</Link>.</p>
     </section>

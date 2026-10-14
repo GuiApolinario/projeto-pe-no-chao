@@ -4,6 +4,7 @@ import { ProvedorFiltro, ProvedorSessao } from './lib/sessao';
 import { Carregando, ProvedorAvisos } from './components/ui';
 import { Contato, Doe, Inicio, LayoutSite, Privacidade, Transparencia } from './site/Site';
 import { Entrar, RedefinirSenha } from './site/Entrar';
+import { supabaseConfigurado } from './lib/supabase';
 
 // área administrativa carregada sob demanda (o site público fica leve)
 const LayoutAdmin = lazy(() => import('./admin/Layout'));
@@ -53,9 +54,9 @@ export default function App() {
                   <Route path="privacidade" element={<Privacidade />} />
                   <Route path="*" element={<NaoEncontrada />} />
                 </Route>
-                <Route path="entrar" element={<Entrar />} />
-                <Route path="redefinir-senha" element={<RedefinirSenha />} />
-                <Route path="admin" element={<LayoutAdmin />}>
+                {supabaseConfigurado && <Route path="entrar" element={<Entrar />} />}
+                {supabaseConfigurado && <Route path="redefinir-senha" element={<RedefinirSenha />} />}
+                {supabaseConfigurado && <Route path="admin" element={<LayoutAdmin />}>
                   <Route index element={<Painel />} />
                   <Route path="alertas" element={<Alertas />} />
                   <Route path="movimentacoes" element={<Movimentacoes />} />
@@ -75,7 +76,7 @@ export default function App() {
                   <Route path="usuarios" element={<Usuarios />} />
                   <Route path="auditoria" element={<Auditoria />} />
                   <Route path="backup" element={<Backup />} />
-                </Route>
+                </Route>}
               </Routes>
             </Suspense>
           </ProvedorFiltro>

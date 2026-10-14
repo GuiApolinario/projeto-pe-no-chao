@@ -116,6 +116,7 @@ create view public.v_execucao_orcamentaria with (security_invoker = true) as
 select
   oi.id, oi.fonte_id, f.nome as fonte, f.vinculado, oi.categoria_id, c.nome as categoria, oi.meta_id,
   oi.descricao, oi.validade_inicio, oi.validade_fim, oi.documento_ref, oi.alerta_percentual,
+  c.nome || ' — ' || f.nome || ' (' || to_char(oi.validade_inicio, 'DD/MM/YY') || ' a ' || to_char(oi.validade_fim, 'DD/MM/YY') || ')' as rotulo,
   oi.valor_aprovado,
   coalesce(oi.valor_revisado, oi.valor_aprovado) as valor_atualizado,
   coalesce(ex.v, 0)::numeric(14,2) as executado,

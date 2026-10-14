@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html { -webkit-text-size-adjust: 100%; }
+body { @apply bg-white text-slate-800 antialiased; }
+:focus-visible { outline: 2px solid #F2A900; outline-offset: 2px; }
+@media print {
+  header, aside, nav, button { display: none !important; }
+  main { padding: 0 !important; }
+}

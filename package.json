@@ -6,9 +6,9 @@
   "description": "Site institucional e sistema de prestação de contas do Projeto Pé no Chão (Votorantim/SP)",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc --noEmit -p . && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -b",
+    "typecheck": "tsc --noEmit -p .",
     "test": "vitest run",
     "test:db": "bash scripts/testar-banco.sh",
     "backup": "node scripts/backup.mjs",

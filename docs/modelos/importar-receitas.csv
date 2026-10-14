@@ -1,0 +1,3 @@
+data;situacao;descricao;categoria;fonte;valor;conta;forma;origem;doador;referencia;observacoes
+15/01/2026;recebida;Doações via PIX janeiro;Doações de pessoas físicas;Doações livres;1.250,00;Conta movimento;PIX;Campanha de verão;;;Exemplo — apague esta linha
+10/08/2026;prevista;Repasse parcela 2/2;Repasse de parceria ou convênio;Termo de fomento;6.000,00;;;Prefeitura;;;Exemplo — apague esta linha

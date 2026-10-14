@@ -1,0 +1,3 @@
+data_compra;descricao;categoria;fonte;fornecedor;cpf_cnpj;valor_total;numero_nf;justificativa;data_pagamento;valor_pago;conta;forma
+20/02/2026;Bolas de futebol;Materiais esportivos;Termo de fomento;Esportes Ltda;11.222.333/0001-81;899,00;NF-123;Treinos semanais;21/02/2026;899,00;Conta do termo;PIX
+05/03/2026;Lanches do mês;Alimentação e lanches;Doações livres;Mercadinho da Vila;;420,00;;Lanche das atividades;;;;

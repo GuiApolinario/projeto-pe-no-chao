@@ -15,5 +15,5 @@
   "necessidades": [],
   "supabase_url": null,
   "supabase_anon_key": null,
-  "prestacao_demo": false
+  "prestacao_demo": true
 }

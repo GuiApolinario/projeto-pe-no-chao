@@ -201,3 +201,179 @@ create policy pc_storage_enviar on storage.objects for insert to authenticated
 drop policy if exists pc_storage_apagar on storage.objects;
 create policy pc_storage_apagar on storage.objects for delete to authenticated
   using (bucket_id in ('prestacao-publica', 'prestacao-privada') and public.pc_eh_admin());
+
+-- =====================================================================
+-- PARTE 2 — Painel do administrador
+-- Configurações do site (PIX, contatos, textos, campanha, necessidades),
+-- equipe, saúde do banco e "ping" que o robô do GitHub usa para manter o
+-- projeto Supabase ativo.
+-- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- Configurações do site: todos leem (é o que aparece no site), só admin grava
+-- ---------------------------------------------------------------------
+create table if not exists public.pc_site (
+  id             int primary key default 1 check (id = 1),
+  valor          jsonb not null default '{}'::jsonb,
+  atualizado_em  timestamptz not null default now(),
+  atualizado_por uuid
+);
+insert into public.pc_site (id) values (1) on conflict (id) do nothing;
+
+create or replace function public.pc_validar_site()
+returns trigger language plpgsql set search_path = public
+as $$
+declare
+  k text; v jsonb; n jsonb; t text; limite int;
+  permitidos text[] := array['pix_chave', 'pix_tipo', 'pix_nome', 'pix_cidade', 'banco_texto', 'whatsapp', 'instagram', 'email',
+                             'endereco', 'texto_sobre', 'campanha_titulo', 'campanha_meta', 'campanha_arrecadado', 'necessidades'];
+begin
+  if jsonb_typeof(new.valor) <> 'object' then raise exception 'Configuração inválida.'; end if;
+  if length(new.valor::text) > 30000 then raise exception 'Configuração grande demais.'; end if;
+  for k, v in select key, value from jsonb_each(new.valor) loop
+    if not (k = any(permitidos)) then raise exception 'Campo não permitido: %', k; end if;
+    if k = 'necessidades' then
+      if jsonb_typeof(v) <> 'array' or jsonb_array_length(v) > 30 then raise exception 'A lista de necessidades aceita até 30 itens.'; end if;
+      for n in select value from jsonb_array_elements(v) loop
+        if jsonb_typeof(n) <> 'object'
+           or jsonb_typeof(n -> 'titulo') is distinct from 'string'
+           or length(trim(n ->> 'titulo')) not between 2 and 120
+           or length(coalesce(n ->> 'descricao', '')) > 300
+           or coalesce(n ->> 'prioridade', 'media') not in ('alta', 'media', 'baixa') then
+          raise exception 'Item inválido na lista de necessidades.';
+        end if;
+      end loop;
+    elsif k in ('campanha_meta', 'campanha_arrecadado') then
+      if jsonb_typeof(v) not in ('null', 'number', 'string')
+         or (jsonb_typeof(v) <> 'null' and (v #>> '{}') !~ '^[0-9]{1,10}(\.[0-9]{1,2})?$') then
+        raise exception 'Valor da campanha inválido (use apenas números).';
+      end if;
+    else
+      if jsonb_typeof(v) not in ('null', 'string') then raise exception 'O campo % deve ser texto.', k; end if;
+      t := v #>> '{}';
+      limite := 300;
+      if k = 'texto_sobre' then limite := 4000; end if;
+      if t is not null and length(t) > limite then raise exception 'Texto longo demais em %.', k; end if;
+      if t is not null and t <> '' then
+        if k = 'whatsapp' and t !~ '^[0-9+() -]{8,20}$' then raise exception 'WhatsApp inválido.';
+        elsif k = 'instagram' and t !~ '^@?[A-Za-z0-9._]{1,30}$' then raise exception 'Instagram inválido.';
+        elsif k = 'email' and t !~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$' then raise exception 'E-mail inválido.';
+        elsif k = 'pix_tipo' and t not in ('CNPJ', 'CPF', 'E-mail', 'Telefone', 'Chave aleatória') then raise exception 'Tipo de chave PIX inválido.';
+        end if;
+      end if;
+    end if;
+  end loop;
+  new.id := 1;
+  new.atualizado_em := now();
+  new.atualizado_por := auth.uid();
+  return new;
+end $$;
+drop trigger if exists pc_site_validar on public.pc_site;
+create trigger pc_site_validar before insert or update on public.pc_site
+  for each row execute function public.pc_validar_site();
+
+-- histórico das mudanças do site (mesma tabela imutável; id fixo para as configurações)
+create or replace function public.pc_registrar_historico_site()
+returns trigger language plpgsql security definer set search_path = public
+as $$
+declare v_email text;
+begin
+  select email into v_email from auth.users where id = auth.uid();
+  if tg_op = 'UPDATE' and old.valor = new.valor then return new; end if;
+  insert into public.pc_historico (lancamento_id, acao, antes, depois, usuario_id, usuario_email)
+  values ('00000000-0000-0000-0000-00000000c0f1', 'site', case when tg_op = 'UPDATE' then old.valor end, new.valor, auth.uid(), v_email);
+  return new;
+end $$;
+drop trigger if exists pc_site_historico on public.pc_site;
+create trigger pc_site_historico after insert or update on public.pc_site
+  for each row execute function public.pc_registrar_historico_site();
+
+alter table public.pc_site enable row level security;
+drop policy if exists pc_site_ler on public.pc_site;
+create policy pc_site_ler on public.pc_site for select to anon, authenticated using (true);
+drop policy if exists pc_site_inserir on public.pc_site;
+create policy pc_site_inserir on public.pc_site for insert to authenticated with check (public.pc_eh_admin());
+drop policy if exists pc_site_alterar on public.pc_site;
+create policy pc_site_alterar on public.pc_site for update to authenticated using (public.pc_eh_admin()) with check (public.pc_eh_admin());
+revoke all on public.pc_site from anon;
+grant select on public.pc_site to anon;
+revoke delete, truncate on public.pc_site from authenticated;
+
+-- ---------------------------------------------------------------------
+-- Equipe: administradores gerenciam administradores (a pessoa já precisa ter
+-- usuário criado em Authentication → Users)
+-- ---------------------------------------------------------------------
+create or replace function public.pc_adicionar_admin(p_email text)
+returns text language plpgsql security definer set search_path = public
+as $$
+declare v_id uuid; v_email text := lower(trim(p_email));
+begin
+  if not public.pc_eh_admin() then raise exception 'Apenas administradores podem dar acesso.'; end if;
+  select id into v_id from auth.users where lower(email) = v_email;
+  if v_id is null then
+    raise exception 'Não encontrei "%". Crie o usuário antes em Supabase → Authentication → Users.', p_email;
+  end if;
+  insert into public.pc_admins (user_id, email) values (v_id, v_email) on conflict do nothing;
+  return v_email || ' agora pode lançar a prestação de contas.';
+end $$;
+
+create or replace function public.pc_retirar_admin(p_email text)
+returns text language plpgsql security definer set search_path = public
+as $$
+declare v_id uuid; v_email text := lower(trim(p_email));
+begin
+  if not public.pc_eh_admin() then raise exception 'Apenas administradores podem retirar acesso.'; end if;
+  select user_id into v_id from public.pc_admins where lower(email) = v_email;
+  if v_id is null then raise exception '% não é administrador(a).', p_email; end if;
+  if v_id = auth.uid() then raise exception 'Você não pode retirar o seu próprio acesso.'; end if;
+  delete from public.pc_admins where user_id = v_id;
+  return 'Acesso de ' || v_email || ' retirado.';
+end $$;
+
+revoke execute on function public.pc_adicionar_admin(text), public.pc_retirar_admin(text) from public, anon;
+grant execute on function public.pc_adicionar_admin(text), public.pc_retirar_admin(text) to authenticated;
+
+-- ---------------------------------------------------------------------
+-- Manter o banco ativo: o robô do GitHub chama pc_ping() todo dia.
+-- (Projetos gratuitos do Supabase pausam após ~7 dias sem atividade.)
+-- ---------------------------------------------------------------------
+create table if not exists public.pc_atividade (
+  id          int primary key default 1 check (id = 1),
+  ultimo_ping timestamptz,
+  total       bigint not null default 0
+);
+insert into public.pc_atividade (id) values (1) on conflict (id) do nothing;
+alter table public.pc_atividade enable row level security;
+revoke all on public.pc_atividade from anon, authenticated;
+
+create or replace function public.pc_ping()
+returns timestamptz language plpgsql security definer set search_path = public
+as $$
+declare t timestamptz;
+begin
+  -- grava no máximo uma vez por minuto (evita abuso); qualquer chamada já conta como atividade
+  update public.pc_atividade set ultimo_ping = now(), total = total + 1
+   where id = 1 and (ultimo_ping is null or ultimo_ping < now() - interval '1 minute')
+  returning ultimo_ping into t;
+  if t is null then select ultimo_ping into t from public.pc_atividade where id = 1; end if;
+  return t;
+end $$;
+grant execute on function public.pc_ping() to anon, authenticated;
+
+create or replace function public.pc_saude()
+returns jsonb language plpgsql stable security definer set search_path = public
+as $$
+begin
+  if not public.pc_eh_admin() then raise exception 'Apenas administradores.'; end if;
+  return jsonb_build_object(
+    'agora', now(),
+    'lancamentos', (select count(*) from public.pc_lancamentos),
+    'publicados', (select count(*) from public.pc_lancamentos where publicar),
+    'sem_comprovante', (select count(*) from public.pc_lancamentos where jsonb_array_length(anexos) = 0),
+    'ultima_alteracao', (select max(atualizado_em) from public.pc_lancamentos),
+    'ultimo_ping', (select ultimo_ping from public.pc_atividade where id = 1),
+    'total_pings', (select total from public.pc_atividade where id = 1),
+    'administradores', (select count(*) from public.pc_admins));
+end $$;
+revoke execute on function public.pc_saude() from public, anon;
+grant execute on function public.pc_saude() to authenticated;

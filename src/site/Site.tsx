@@ -6,7 +6,8 @@ import { supabase, supabaseConfigurado } from '../lib/supabase';
 import { gerarPixCopiaECola } from '../lib/pix';
 import { data as fmtData, dinheiro, lerDinheiro, mesAno, num } from '../lib/formato';
 import { cx } from '../components/ui';
-import { temBackend, temPrestacao, type ConfigPrestacao } from '../prestacao/config';
+import { obterCliente, temBackend, temPrestacao, type ConfigPrestacao } from '../prestacao/config';
+import { mesclarConfig } from '../prestacao/siteConfig';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export interface ConfigSite extends ConfigPrestacao {
@@ -17,15 +18,31 @@ export interface ConfigSite extends ConfigPrestacao {
 }
 
 let cacheConfig: Promise<ConfigSite> | null = null;
+
+/** Base: site.json (publicado com o site). Por cima: o que a equipe salvou no painel (tabela pc_site). */
+async function carregarConfig(): Promise<ConfigSite> {
+  if (supabaseConfigurado) {
+    const { data } = await supabase.from('configuracoes').select('valor').eq('chave', 'site').maybeSingle();
+    return (data?.valor as ConfigSite) ?? {};
+  }
+  const estatica: ConfigSite = await fetch('/site.json', { cache: 'no-cache' }).then((r) => r.json()).catch(() => ({}));
+  if (!temBackend(estatica)) return estatica;
+  try {
+    const { data, error } = await obterCliente(estatica).from('pc_site').select('valor').eq('id', 1).maybeSingle();
+    if (error) throw error;
+    return mesclarConfig(estatica, data?.valor);
+  } catch {
+    return estatica; // banco fora do ar: o site continua com o que está no site.json
+  }
+}
+
+/** Depois que a equipe salva, o painel pede para reler. */
+export function recarregarConfigSite() { cacheConfig = null; }
+
 export function useConfigSite() {
   const [c, setC] = useState<ConfigSite | null>(null);
   useEffect(() => {
-    if (!supabaseConfigurado) {
-      cacheConfig ??= fetch('/site.json', { cache: 'no-cache' }).then((r) => r.json()).catch(() => ({}));
-      cacheConfig.then(setC);
-      return;
-    }
-    cacheConfig ??= Promise.resolve(supabase.from('configuracoes').select('valor').eq('chave', 'site').maybeSingle()).then(({ data }) => (data?.valor as ConfigSite) ?? {});
+    cacheConfig ??= carregarConfig();
     cacheConfig.then(setC);
   }, []);
   return c;

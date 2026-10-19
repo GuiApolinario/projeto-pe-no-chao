@@ -29,7 +29,7 @@ Você precisa do projeto Supabase que já criou.
 ### 2.1 Criar as tabelas
 1. Supabase → **SQL Editor** → **New query**.
 2. Abra no GitHub o arquivo `supabase/prestacao/01_prestacao_simples.sql`, copie **tudo**, cole e clique **Run**.
-3. Deve aparecer *Success*. (Pode rodar de novo sem problema, se precisar.)
+3. Deve aparecer *Success*. (Pode rodar de novo sem problema — **faça isso sempre que este arquivo for atualizado**; por exemplo, se você já tinha rodado antes do painel do administrador existir.)
 
 ### 2.2 Criar o seu usuário
 1. Supabase → **Authentication → Users → Add user → Create new user**.
@@ -88,23 +88,57 @@ Outras ações na lista: **Editar**, **Esconder** (tira do site sem apagar), **E
 
 ### Dar acesso a outra pessoa
 1. Supabase → Authentication → Users → **Add user** (e-mail + senha, *Auto Confirm User*).
-2. SQL Editor: `select public.pc_tornar_admin('outra-pessoa@exemplo.com');`
-3. Para retirar o acesso: `select public.pc_remover_admin('outra-pessoa@exemplo.com');`
+2. Na área da equipe, aba **Equipe e saúde do site** → digite o e-mail → **Dar acesso**. (Para tirar o acesso: **Retirar acesso** na mesma lista. Você não consegue retirar o seu próprio.)
 
 Todo lançamento fica no **histórico** (quem criou, alterou ou excluiu, e quando). O histórico não pode ser editado nem apagado.
 
 ---
 
+## Passo 4 — Painel do administrador (mudar o site sem mexer no GitHub)
+
+Na **Área da equipe** há três abas:
+
+| Aba | Para quê |
+|---|---|
+| **Prestação de contas** | lançar entradas, gastos e comprovantes (passo 3) |
+| **Site e doações** | PIX, contatos (WhatsApp, Instagram, e-mail, endereço), texto “Quem somos”, campanha com meta e a lista “o que o projeto precisa” |
+| **Equipe e saúde do site** | ver se o banco está ativo, dar/retirar acesso e conferir se o robô diário está funcionando |
+
+**Site e doações:** altere o que quiser e clique **Salvar alterações** — vale **na hora**, sem publicar nada. O que o painel não mexe (ligação com o banco) continua no `site.json`; o `site.json` passa a servir só de base inicial e de reserva se o banco estiver fora do ar.
+- A chave PIX é conferida antes de salvar (dígitos de CPF/CNPJ, formato de e-mail/telefone/chave aleatória) e você vê a **prévia do QR Code**.
+- Depois de salvar o PIX, **faça um PIX de teste de R$ 1,00** lendo o QR Code da página “Como ajudar” e confira o nome do recebedor no banco.
+- Campo em branco = não aparece no site. Toda mudança fica no histórico (quem, quando).
+
+---
+
+## Passo 5 — Manter o banco ativo (automático)
+
+O plano gratuito do Supabase **pausa o projeto depois de cerca de 7 dias sem uso**. Para isso não acontecer, o GitHub consulta o banco **todo dia às 06:23** (fluxo **Manter banco ativo**, arquivo `.github/workflows/manter-banco-ativo.yml`).
+
+- Não precisa configurar nada: ele lê a URL e a chave pública do `site.json` e só passa a agir depois do passo 2.5.
+- Cada execução grava um “ping” no banco. Em **Equipe e saúde do site** você vê *“Último acesso automático: …”*; se passar de 3 dias, o painel avisa.
+- Para testar agora: GitHub → **Actions → Manter banco ativo → Run workflow**.
+- Se o banco não responder (por exemplo, projeto já pausado), o fluxo **falha** e o GitHub manda e-mail para você. Nesse caso: supabase.com/dashboard → seu projeto → **Restore project**.
+
+⚠️ Dois cuidados do próprio GitHub:
+1. O agendamento só roda na **branch padrão** do repositório (hoje é a mesma que publica o site; se um dia mudarem a branch padrão, o arquivo precisa estar nela).
+2. Em repositório **público**, o GitHub **desliga os agendamentos depois de 60 dias sem nenhuma atividade** (commit, etc.). Como o site recebe atualizações, normalmente não acontece; se vier o aviso por e-mail, abra o fluxo em Actions e clique **Enable workflow**.
+
+---
+
 ## Como funciona por baixo (para quem for dar manutenção)
 
+- **Informações do site** ficam na tabela `pc_site` (todos leem, só administrador grava; os campos são validados no banco). O site lê o `site.json` e, por cima, o que a equipe salvou.
+- **Robô diário:** `scripts/manter-banco-ativo.mjs` (3 consultas, uma delas grava um ping em `pc_atividade`; tem testes automatizados).
 - **Página pública** lê só a visão `pc_publico` (sem anotações internas, nomes ocultos mascarados, só fotos públicas).
 - **Tabela `pc_lancamentos`**: somente administradores leem e gravam (regras RLS). Visitante recebe “permissão negada”.
 - **Fotos**: dois depósitos — `prestacao-publica` (link direto, nomes de arquivo aleatórios) e `prestacao-privada` (somente equipe, links temporários). Limite de 5 MB e só JPG/PNG/WEBP/PDF, validados também no servidor.
 - **Dinheiro** é guardado com 2 casas decimais e somado em centavos (sem erro de arredondamento).
+- As informações do site (inclusive a chave PIX) são públicas por natureza: qualquer pessoa pode lê-las, como no site.
 - A visão `pc_publico` roda com as permissões do dono do banco (é assim que ela filtra o que é público). O *Security Advisor* do Supabase pode listar isso como aviso; é esperado.
 
 ## Limites desta primeira versão
-- Backup: use o botão **Excel** da área da equipe todo mês e os backups do painel do Supabase. (O `scripts/backup.mjs` ainda cobre apenas o sistema completo.)
+- Backup: use o botão **Excel** da área da equipe todo mês e os backups do painel do Supabase. (O `scripts/backup.mjs` ainda cobre apenas o sistema completo.) As informações do site (aba “Site e doações”) não entram no Excel: guarde uma cópia do texto importante.
 - Cada registro aceita até 6 comprovantes; cada arquivo até 5 MB.
 - Não há conciliação bancária, orçamento nem relatório em PDF nesta aba — eles existem no sistema completo (`/admin`), que pode ser ativado depois.
 - Se esquecer a senha: **Esqueci minha senha** na tela de login (precisa do Site URL do passo 2.4) ou redefina em Authentication → Users.

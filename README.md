@@ -15,7 +15,9 @@ Endereço: **https://projetopenochao.ggsistemas.dev.br**
 - **Transparência**: totais recebidos e pagos por período publicado e onde o dinheiro foi aplicado — sem nomes de doadores, fornecedores ou crianças.
 - Contato com consentimento LGPD e página de privacidade.
 
-**Sistema administrativo** (`/admin`, somente equipe convidada)
+**Área da equipe** (`/prestacao-de-contas/gerenciar`): lançar entradas, gastos e comprovantes; mudar PIX, contatos, textos, campanha e necessidades **sem mexer no GitHub**; gerenciar acessos e ver a saúde do banco. Um robô diário (GitHub Actions) mantém o banco ativo.
+
+**Sistema administrativo completo** (`/admin`, somente equipe convidada)
 - Painel financeiro com 12+ indicadores, alertas e 6 gráficos clicáveis.
 - Receitas, despesas (pagamentos parciais, estornos, cancelamentos justificados), doações em bens separadas do caixa.
 - Central de comprovantes (fotos e PDFs em armazenamento privado), checklist documental configurável e conferência.

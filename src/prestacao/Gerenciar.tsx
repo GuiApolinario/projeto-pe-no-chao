@@ -13,6 +13,8 @@ import { FormLancamento, rascunhoDe, rascunhoVazio } from './FormLancamento';
 import { CartoesResumo, Miniatura, useLightbox, type ItemVisual } from './componentes';
 import { urlParaEquipe } from './armazenamento';
 import type { Lancamento, TipoLancamento } from './tipos';
+import { AdminSite } from './AdminSite';
+import { AdminEquipe } from './AdminEquipe';
 
 const POR_PAGINA = 20;
 
@@ -78,8 +80,9 @@ function NovaSenha({ sb, onFeito }: { sb: SupabaseClient; onFeito: () => void })
 }
 
 // ------------------------------------------------------------------ painel da equipe
-function Painel({ sb, config, email }: { sb: SupabaseClient; config: ConfigPrestacao; email: string }) {
+function Painel({ sb, config, email, meuId }: { sb: SupabaseClient; config: ConfigPrestacao; email: string; meuId: string }) {
   const avisar = useAviso();
+  const [aba, setAba] = useState<'contas' | 'site' | 'equipe'>('contas');
   const { confirmar, elemento: confirmacao } = useConfirmacao();
   const lightbox = useLightbox();
   const [lancs, setLancs] = useState<Lancamento[] | null>(null);
@@ -155,8 +158,8 @@ function Painel({ sb, config, email }: { sb: SupabaseClient; config: ConfigPrest
     <Moldura>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="font-titulo text-3xl font-extrabold text-slate-900 sm:text-4xl">Prestação de contas — equipe</h1>
-          <p className="text-slate-600">Registre o dinheiro que entra e sai, com os comprovantes. Tudo que estiver marcado “aparece no site” é publicado na hora.</p>
+          <h1 className="font-titulo text-3xl font-extrabold text-slate-900 sm:text-4xl">Área da equipe</h1>
+          <p className="text-slate-600">Registre o dinheiro que entra e sai e cuide das informações do site. O que você salvar aparece no site na hora.</p>
         </div>
         <div className="flex items-center gap-2 text-sm">
           <Link to="/prestacao-de-contas" className="rounded-full px-4 py-2 font-semibold ring-1 ring-slate-300 hover:bg-white">Ver página pública</Link>
@@ -164,6 +167,17 @@ function Painel({ sb, config, email }: { sb: SupabaseClient; config: ConfigPrest
         </div>
       </div>
       <p className="mb-4 text-xs text-slate-500">Conectado como {email}</p>
+
+      <nav className="mb-6 flex flex-wrap gap-2 border-b border-slate-200 pb-3" aria-label="Seções da área da equipe">
+        {([['contas', 'Prestação de contas'], ['site', 'Site e doações'], ['equipe', 'Equipe e saúde do site']] as const).map(([k, rotulo]) => (
+          <button key={k} onClick={() => setAba(k)} aria-current={aba === k ? 'page' : undefined} data-teste={`aba-${k}`}
+            className={`rounded-full px-5 py-2.5 text-sm font-bold transition ${aba === k ? 'bg-slate-900 text-white shadow' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-sol-50'}`}>{rotulo}</button>
+        ))}
+      </nav>
+
+      {aba === 'site' && <AdminSite sb={sb} base={config as Record<string, unknown>} />}
+      {aba === 'equipe' && <AdminEquipe sb={sb} meuId={meuId} />}
+      {aba === 'contas' && (<>
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2">
         <button data-teste="novo-entrada" onClick={() => setForm(rascunhoVazio('entrada'))} className="flex items-center justify-center gap-3 rounded-3xl bg-blue-600 px-6 py-6 text-xl font-bold text-white shadow-lg shadow-blue-200 transition hover:brightness-110"><ArrowUpRight className="h-7 w-7" />Entrou dinheiro</button>
@@ -241,6 +255,8 @@ function Painel({ sb, config, email }: { sb: SupabaseClient; config: ConfigPrest
         </>
       )}
 
+      </>)}
+
       {form && <FormLancamento sb={sb} config={config} inicial={form} onFechar={() => setForm(null)} onSalvo={() => { setForm(null); carregar(); }} />}
       {lightbox.elemento}
       {confirmacao}
@@ -298,5 +314,5 @@ export default function Gerenciar() {
       </div></Moldura>
     );
   }
-  return <Painel sb={sb} config={config} email={sessao.user.email ?? ''} />;
+  return <Painel sb={sb} config={config} email={sessao.user.email ?? ''} meuId={sessao.user.id} />;
 }

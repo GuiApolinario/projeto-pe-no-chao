@@ -21,3 +21,5 @@ Para atualizar o conteúdo depois, basta editar o `site.json` direto no servidor
 ## Aba "Prestação de contas"
 Já vem no código, escondida. Para ver (com dados de exemplo) e depois ativar de verdade, siga `docs/PRESTACAO.md`.
 Campos do `site.json` ligados a ela: `prestacao_demo` (pré-visualização), `supabase_url` e `supabase_anon_key` (ativação real).
+
+Depois de ativada (docs/PRESTACAO.md), PIX, contatos, textos e campanha passam a ser editados no painel da equipe (aba **Site e doações**), sem tocar no `site.json`.

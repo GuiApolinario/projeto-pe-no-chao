@@ -39,11 +39,20 @@ Além disso, o aplicativo foi executado em navegador (Chromium) contra um PostgR
 
 | O que | Como foi verificado | Resultado |
 |---|---|---|
-| Banco: permissões, validações, histórico, fotos | `supabase/tests/20_prestacao.sql` (22 verificações, em PostgreSQL real) | ✔ visitante só lê a visão pública; tabela base e histórico bloqueados; só admin grava; valores ≤ 0, anexos inválidos e histórico adulterado recusados |
+| Banco: permissões, validações, histórico, fotos | `supabase/tests/20_prestacao.sql` (44 verificações, em PostgreSQL real) | ✔ visitante só lê a visão pública; tabela base e histórico bloqueados; só admin grava; valores ≤ 0, anexos inválidos e histórico adulterado recusados |
 | Cálculos (totais, saldo acumulado, mês a mês, categorias, busca) | `src/prestacao/*.test.ts` (18 testes) | ✔ somas em centavos; saldo acumulado inclui anos anteriores |
 | Fluxo completo no navegador (Chromium) contra PostgREST + armazenamento simulado | login, lançar entrada e gasto, foto de 3000×4000, tarja sobre CPF, PDF, trocar foto pública↔privada, esconder, excluir, usuário sem permissão, celular | ✔ 28 verificações, sem erros no navegador |
 | Privacidade | verificado nos arquivos gravados e na página pública | ✔ foto de entrada nasce privada; link público de foto privada recusado (HTTP 400); nome oculto não aparece; tarja realmente preta nos pixels; foto reduzida para 1350×1800 sem localização (96 KB) |
 | Página pública | com dados de exemplo e com dados reais, desktop e celular | ✔ cartões, 4 gráficos, tabela alternativa, lista com miniaturas e visualizador |
+
+**Painel do administrador e robô diário**
+
+| O que | Como foi verificado | Resultado |
+|---|---|---|
+| Configurações do site, equipe, saúde e ping no banco | `supabase/tests/20_prestacao.sql` (parte 2, 39 verificações) | ✔ só admin grava; visitante só lê; campos inventados, WhatsApp/Instagram/e-mail inválidos, meta negativa, mais de 30 itens e textos longos recusados; mudança do site vai ao histórico; dar/retirar acesso (nunca o próprio); ping limitado a 1 por minuto |
+| Validação e conversão do formulário do site, mescla com o `site.json` | `src/prestacao/siteConfig.test.ts` (14 testes) | ✔ confere dígitos de CPF/CNPJ da chave PIX; a equipe nunca altera a ligação com o banco |
+| Robô diário | `scripts/manter-banco-ativo.test.mjs` (7 testes) + execução real contra o banco local | ✔ 3 chamadas, grava ping, repete em erro de rede, falha com instrução de “Restore project” se o banco não responder, recusa endereços que não sejam do Supabase, não falha se o banco ainda não foi configurado |
+| Fluxo no navegador (Chromium) | roteiro com 23 verificações | ✔ salvar PIX/contatos/texto/campanha/necessidades e ver a mudança como visitante (QR Code, botão do WhatsApp, rodapé, página inicial); apagar um campo remove do site; saúde do banco e robô; dar e retirar acesso com efeito imediato |
 
 O teste de navegador usa um servidor que *imita* o Supabase (autenticação e armazenamento). As regras de segurança do banco foram testadas no PostgreSQL de verdade; já o armazenamento de arquivos real do Supabase deve ser conferido no roteiro de aceitação (enviar uma foto, abrir como visitante).
 

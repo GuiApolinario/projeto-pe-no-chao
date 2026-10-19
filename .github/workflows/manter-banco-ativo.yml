@@ -1,0 +1,33 @@
+name: Manter banco ativo
+
+# Todo dia o GitHub consulta o banco do projeto (Supabase). Projetos gratuitos são pausados
+# depois de cerca de 7 dias sem uso; com esta consulta diária isso não acontece.
+# Não usa segredos: lê a URL e a chave PÚBLICA do public/site.json.
+#
+# Atenção: o agendamento só vale para a branch padrão do repositório, e o GitHub desliga
+# agendamentos de repositórios públicos sem nenhuma atividade por 60 dias. Se isso acontecer,
+# aba Actions → este fluxo → "Enable workflow".
+on:
+  schedule:
+    - cron: '23 9 * * *' # todos os dias às 06:23 (horário de Brasília)
+  workflow_dispatch: # também dá para rodar na mão (botão "Run workflow")
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            public/site.json
+            scripts/manter-banco-ativo.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Consultar o banco
+        run: node scripts/manter-banco-ativo.mjs public/site.json

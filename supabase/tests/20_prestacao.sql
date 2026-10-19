@@ -110,3 +110,84 @@ select teste.igual((select count(*)::int from storage.objects where bucket_id li
 
 reset role;
 \echo '✔ Prestação de contas: todos os testes passaram.'
+
+-- =====================================================================
+-- PARTE 2: configurações do site, equipe, saúde e ping
+-- =====================================================================
+\set QUIET on
+-- ---------------------------------------------------------------- configurações do site
+select teste.como(null);
+select teste.igual((select count(*)::int from public.pc_site), 1, 'visitante lê as configurações públicas do site');
+select teste.deve_falhar($$update public.pc_site set valor = '{"pix_chave":"x"}'$$, 'permission denied');
+select teste.como('00000000-0000-0000-0000-0000000000b1');
+update public.pc_site set valor = '{"pix_chave":"x"}';
+select teste.igual((select valor ->> 'pix_chave' from public.pc_site), null::text, 'usuário comum não altera o site (RLS)');
+select teste.como('00000000-0000-0000-0000-0000000000a1');
+update public.pc_site set valor = '{"pix_chave":"11222333000181","pix_tipo":"CNPJ","pix_nome":"Projeto Pe no Chao","whatsapp":"(15) 99999-1234","instagram":"@projetopenochao","email":"contato@exemplo.org","campanha_meta":"5000","campanha_arrecadado":1800.5,"necessidades":[{"titulo":"Leite em pó","prioridade":"alta"},{"titulo":"Bolas","descricao":"Para o treino","prioridade":"media"}]}';
+select teste.igual((select valor ->> 'pix_chave' from public.pc_site), '11222333000181', 'admin salva configurações do site');
+select teste.igual((select jsonb_array_length(valor -> 'necessidades') from public.pc_site), 2, 'lista de necessidades salva');
+select teste.igual((select atualizado_por from public.pc_site), '00000000-0000-0000-0000-0000000000a1'::uuid, 'guarda quem alterou');
+select teste.deve_falhar($$update public.pc_site set valor = '{"campo_inventado":"x"}'$$, 'Campo não permitido');
+select teste.deve_falhar($$update public.pc_site set valor = '{"whatsapp":"abc"}'$$, 'WhatsApp inválido');
+select teste.deve_falhar($$update public.pc_site set valor = '{"instagram":"https://x.com/a"}'$$, 'Instagram inválido');
+select teste.deve_falhar($$update public.pc_site set valor = '{"email":"semarroba"}'$$, 'E-mail inválido');
+select teste.deve_falhar($$update public.pc_site set valor = '{"pix_tipo":"Cartão"}'$$, 'Tipo de chave');
+select teste.deve_falhar($$update public.pc_site set valor = '{"campanha_meta":"-5"}'$$, 'Valor da campanha');
+select teste.deve_falhar($$update public.pc_site set valor = '{"campanha_meta":"abc"}'$$, 'Valor da campanha');
+select teste.deve_falhar($$update public.pc_site set valor = jsonb_build_object('texto_sobre', repeat('a', 4001))$$, 'longo demais');
+select teste.deve_falhar($$update public.pc_site set valor = '{"necessidades":[{"titulo":"x"}]}'$$, 'Item inválido');
+select teste.deve_falhar($$update public.pc_site set valor = '{"necessidades":[{"titulo":"Item válido","prioridade":"urgentíssima"}]}'$$, 'Item inválido');
+select teste.deve_falhar($$update public.pc_site set valor = (select jsonb_build_object('necessidades', jsonb_agg(jsonb_build_object('titulo', 'Item ' || g))) from generate_series(1, 31) g)$$, 'até 30');
+select teste.deve_falhar($$update public.pc_site set valor = '[]'$$, 'inválida');
+select teste.deve_falhar($$delete from public.pc_site$$, 'permission denied');
+select teste.igual((select count(*)::int from public.pc_historico where acao = 'site'), 1, 'mudança do site registrada no histórico');
+select teste.como(null);
+select teste.igual((select valor -> 'necessidades' -> 0 ->> 'titulo' from public.pc_site), 'Leite em pó', 'visitante enxerga o que o admin salvou');
+
+-- ---------------------------------------------------------------- equipe
+reset role;
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000c1', 'nova-pessoa@teste');
+select teste.como('00000000-0000-0000-0000-0000000000b1');
+select teste.deve_falhar($$select public.pc_adicionar_admin('nova-pessoa@teste')$$, 'Apenas administradores');
+select teste.como(null);
+select teste.deve_falhar($$select public.pc_adicionar_admin('nova-pessoa@teste')$$, 'permission denied');
+select teste.como('00000000-0000-0000-0000-0000000000a1');
+select teste.deve_falhar($$select public.pc_adicionar_admin('ninguem@teste')$$, 'Não encontrei');
+select public.pc_adicionar_admin('Nova-Pessoa@teste');
+select teste.igual((select count(*)::int from public.pc_admins), 2, 'admin dá acesso a outra pessoa');
+select teste.como('00000000-0000-0000-0000-0000000000c1');
+select teste.igual(public.pc_eh_admin(), true, 'pessoa nova passa a ser admin');
+select public.pc_retirar_admin('pc-admin@teste');
+select teste.como('00000000-0000-0000-0000-0000000000a1');
+select teste.igual(public.pc_eh_admin(), false, 'acesso retirado vale na hora');
+select teste.como('00000000-0000-0000-0000-0000000000c1');
+select teste.deve_falhar($$select public.pc_retirar_admin('nova-pessoa@teste')$$, 'próprio acesso');
+select teste.deve_falhar($$select public.pc_retirar_admin('visitante@teste')$$, 'não é administrador');
+select public.pc_adicionar_admin('pc-admin@teste');
+select teste.igual((select count(*)::int from public.pc_admins), 2, 'acesso devolvido');
+
+-- ---------------------------------------------------------------- saúde e ping
+select teste.como(null);
+select teste.deve_falhar($$select public.pc_saude()$$, 'permission denied');
+select teste.deve_falhar($$select * from public.pc_atividade$$, 'permission denied');
+select teste.como('00000000-0000-0000-0000-0000000000b1');
+select teste.deve_falhar($$select public.pc_saude()$$, 'Apenas administradores');
+select teste.como(null);
+select public.pc_ping();
+select teste.como('00000000-0000-0000-0000-0000000000a1');
+select teste.igual((public.pc_saude() ->> 'total_pings')::int, 1, 'ping do robô conta como atividade (visitante anônimo pode chamar)');
+select teste.igual((public.pc_saude() ->> 'ultimo_ping') is not null, true, 'saúde mostra o último ping');
+select teste.como(null);
+select public.pc_ping();
+select teste.como('00000000-0000-0000-0000-0000000000a1');
+select teste.igual((public.pc_saude() ->> 'total_pings')::int, 1, 'ping repetido em menos de 1 minuto não infla o contador');
+select teste.igual((public.pc_saude() ->> 'lancamentos')::int, 2, 'saúde conta os lançamentos');
+select teste.igual((public.pc_saude() ->> 'administradores')::int, 2, 'saúde conta os administradores');
+reset role;
+update public.pc_atividade set ultimo_ping = now() - interval '2 days';
+select teste.como(null);
+select public.pc_ping();
+select teste.como('00000000-0000-0000-0000-0000000000a1');
+select teste.igual((public.pc_saude() ->> 'total_pings')::int, 2, 'passado 1 minuto, o ping volta a contar');
+reset role;
+\echo '✔ Prestação de contas (parte 2): todos os testes passaram.'

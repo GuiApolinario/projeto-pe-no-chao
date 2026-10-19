@@ -13,6 +13,8 @@ export interface ArquivoParaGravar {
   texto?: string;
   /** conteúdo binário (imagens) */
   bytes?: Uint8Array;
+  /** apagar este arquivo */
+  excluir?: boolean;
 }
 
 type Fetch = typeof fetch;
@@ -73,9 +75,10 @@ export class ClienteGitHub {
     const repo = `/repos/${this.repo}`;
     const ref = await this.chamar<{ object: { sha: string } }>('GET', `${repo}/git/ref/heads/${ramo}`);
     const commitBase = await this.chamar<{ tree: { sha: string } }>('GET', `${repo}/git/commits/${ref.object.sha}`);
-    const itens: { path: string; mode: string; type: string; sha: string }[] = [];
+    const itens: { path: string; mode: string; type: string; sha: string | null }[] = [];
     for (const a of arquivos) {
       if (/^\/|\.\.|\\/.test(a.path)) throw new ErroGitHub('Caminho de arquivo inválido.');
+      if (a.excluir) { itens.push({ path: a.path, mode: '100644', type: 'blob', sha: null }); continue; }
       const b = await this.chamar<{ sha: string }>('POST', `${repo}/git/blobs`, { content: a.bytes ? paraBase64(a.bytes) : textoParaBase64(a.texto ?? ''), encoding: 'base64' });
       itens.push({ path: a.path, mode: '100644', type: 'blob', sha: b.sha });
     }

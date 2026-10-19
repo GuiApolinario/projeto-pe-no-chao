@@ -56,13 +56,14 @@ Além disso, o aplicativo foi executado em navegador (Chromium) contra um PostgR
 
 O teste de navegador usa um servidor que *imita* o Supabase (autenticação e armazenamento). As regras de segurança do banco foram testadas no PostgreSQL de verdade; já o armazenamento de arquivos real do Supabase deve ser conferido no roteiro de aceitação (enviar uma foto, abrir como visitante).
 
-**Edição do site sem banco (`/editar-site`)**
+**Edição do site sem banco (modo edição em `/editar-site`)**
 
 | O que | Como foi verificado | Resultado |
 |---|---|---|
 | Conteúdo editável (padrões, só diferenças são guardadas, destaque `*palavra*`, parágrafos) | `src/site/conteudo.test.ts` | ✔ 7 testes |
 | Cliente do GitHub (commit único, não força, erros em português, caminhos perigosos) | `src/prestacao/github.test.ts` com API simulada | ✔ 6 testes |
-| Fluxo no navegador (Chromium) com um GitHub simulado | chave errada/só leitura, editar textos, PIX inválido bloqueia, enviar QR e logotipo, um commit só, site público muda, restaurar, remover imagem, sair, celular | ✔ 32 verificações |
+| Prestação em arquivo (leitura segura, ida e volta, caminhos de foto, sem anotação interna) | `src/prestacao/arquivo.test.ts` | ✔ 6 testes |
+| Fluxo no navegador (Chromium) com um GitHub simulado | chave errada; editar texto no lugar; trocar logotipo e QR Code; PIX inválido barrado; contatos ao vivo; um commit só; lançar entrada com foto (exige confirmar a tarja) e saída; visitante vê tudo publicado; excluir apaga a foto; celular | ✔ 37 verificações |
 
 Não foi testado contra o GitHub real (sem a chave do projeto): faça o primeiro salvamento e confira em Actions.
 

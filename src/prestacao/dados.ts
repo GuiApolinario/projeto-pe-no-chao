@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { hojeISO } from '../lib/formato';
-import { modoDemo, obterCliente, temBackend, type ConfigPrestacao } from './config';
+import { lerLista, URL_DADOS } from './arquivo';
+import { modoArquivo, modoDemo, obterCliente, temBackend, type ConfigPrestacao } from './config';
 import { lancamentosDemo } from './demo';
 import type { Lancamento } from './tipos';
 
@@ -27,6 +28,14 @@ export function usePrestacaoPublica(c: ConfigPrestacao | null) {
   const carregar = useCallback(async () => {
     if (!c) return;
     if (modoDemo(c)) { setLancs(lancamentosDemo(hojeISO())); setEstado('ok'); return; }
+    if (modoArquivo(c)) {
+      try {
+        const r = await fetch(URL_DADOS, { cache: 'no-cache' });
+        setLancs(r.ok ? lerLista(await r.text()) : []);
+        setEstado('ok');
+      } catch (e) { setErro((e as Error).message); setEstado('erro'); }
+      return;
+    }
     if (!temBackend(c)) { setEstado('sem-configuracao'); return; }
     setEstado('carregando');
     try { setLancs(await carregarPublico(c)); setEstado('ok'); }

@@ -6,10 +6,13 @@ export interface ConfigPrestacao {
   supabase_anon_key?: string | null;
   /** mostra a página com dados de EXEMPLO (para pré-visualizar o visual) */
   prestacao_demo?: boolean;
+  /** mostra a aba com os registros lançados pela equipe no arquivo do site (sem banco) */
+  prestacao_ativa?: boolean;
 }
 
 export const temBackend = (c?: ConfigPrestacao | null) => !!(c?.supabase_url && c?.supabase_anon_key);
-export const temPrestacao = (c?: ConfigPrestacao | null) => temBackend(c) || !!c?.prestacao_demo;
+export const temPrestacao = (c?: ConfigPrestacao | null) => temBackend(c) || !!c?.prestacao_demo || !!c?.prestacao_ativa;
+export const modoArquivo = (c?: ConfigPrestacao | null) => !temBackend(c) && !c?.prestacao_demo && !!c?.prestacao_ativa;
 export const modoDemo = (c?: ConfigPrestacao | null) => !temBackend(c) && !!c?.prestacao_demo;
 
 // A chave "anon" é pública por definição: quem protege os dados são as regras (RLS) do banco.
@@ -33,6 +36,7 @@ function svgExemplo(nome: string): string {
 /** Endereço de uma foto no depósito PÚBLICO (só existe para fotos marcadas para aparecer no site). */
 export function urlFotoPublica(c: ConfigPrestacao, a: Anexo): string {
   if (a.path.startsWith('demo:')) return svgExemplo(a.nome ?? 'exemplo');
+  if (a.path.startsWith('comprovantes/')) return `/${a.path}`;
   return `${c.supabase_url}/storage/v1/object/public/${BUCKET_PUBLICO}/${a.path.split('/').map(encodeURIComponent).join('/')}`;
 }
 

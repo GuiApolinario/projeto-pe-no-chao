@@ -6,6 +6,7 @@ import { Navigate } from 'react-router-dom';
 import { Contato, Doe, Inicio, LayoutSite, Privacidade, Transparencia } from './site/Site';
 import { Entrar, RedefinirSenha } from './site/Entrar';
 import { supabaseConfigurado } from './lib/supabase';
+import { ProvedorEdicao } from './site/Edicao';
 
 // área administrativa carregada sob demanda (o site público fica leve)
 const PrestacaoPublica = lazy(() => import('./prestacao/Publica'));
@@ -48,6 +49,7 @@ export default function App() {
       <ProvedorAvisos>
         <ProvedorSessao>
           <ProvedorFiltro>
+            <ProvedorEdicao>
             <Suspense fallback={<Carregando />}>
               <Routes>
                 <Route element={<LayoutSite />}>
@@ -86,6 +88,7 @@ export default function App() {
                 </Route>}
               </Routes>
             </Suspense>
+            </ProvedorEdicao>
           </ProvedorFiltro>
         </ProvedorSessao>
       </ProvedorAvisos>

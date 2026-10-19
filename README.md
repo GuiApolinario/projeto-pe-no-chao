@@ -15,7 +15,7 @@ Endereço: **https://projetopenochao.ggsistemas.dev.br**
 - **Transparência**: totais recebidos e pagos por período publicado e onde o dinheiro foi aplicado — sem nomes de doadores, fornecedores ou crianças.
 - Contato com consentimento LGPD e página de privacidade.
 
-**Editar o site** (`/editar-site`, sem banco de dados): a equipe muda **todos os textos e imagens**, o PIX (com envio da imagem do QR Code) e os contatos; tudo começa em branco/original e é gravado no GitHub.
+**Editar o site** (`/editar-site`, sem banco de dados): a equipe edita **direto na página** (clicando nos textos e imagens): textos, logotipo, PIX (com envio da imagem do QR Code), contatos e lançamentos da prestação de contas. Tudo é gravado no GitHub.
 
 **Área da equipe da prestação de contas** (`/prestacao-de-contas/gerenciar`): lançar entradas, gastos e comprovantes; mudar PIX, contatos, textos, campanha e necessidades **sem mexer no GitHub**; gerenciar acessos e ver a saúde do banco. Um robô diário (GitHub Actions) mantém o banco ativo.
 

@@ -165,7 +165,7 @@ export function ProvedorAvisos({ children }: { children: ReactNode }) {
   return (
     <CtxAviso.Provider value={avisar}>
       {children}
-      <div className="fixed bottom-4 right-4 z-[60] flex w-[min(92vw,380px)] flex-col gap-2" aria-live="polite">
+      <div className="fixed right-4 top-20 z-[60] flex w-[min(92vw,380px)] flex-col gap-2" aria-live="polite">
         {msgs.map((m) => (
           <div key={m.id} className={cx('flex items-start gap-2 rounded-lg px-4 py-3 text-sm shadow-lg ring-1',
             m.tipo === 'ok' && 'bg-emerald-600 text-white ring-emerald-700', m.tipo === 'erro' && 'bg-red-600 text-white ring-red-700', m.tipo === 'info' && 'bg-slate-800 text-white ring-slate-900')}>

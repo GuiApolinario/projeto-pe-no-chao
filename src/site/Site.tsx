@@ -6,49 +6,14 @@ import { supabase, supabaseConfigurado } from '../lib/supabase';
 import { gerarPixCopiaECola } from '../lib/pix';
 import { data as fmtData, dinheiro, lerDinheiro, mesAno, num } from '../lib/formato';
 import { cx } from '../components/ui';
-import { obterCliente, temBackend, temPrestacao, type ConfigPrestacao } from '../prestacao/config';
-import { mesclarConfig } from '../prestacao/siteConfig';
+import { temBackend, temPrestacao } from '../prestacao/config';
 import { blocosDeTexto, imagemDe, partesDestaque, tx } from './conteudo';
+import { useEdicao } from './contextoEdicao';
+import { BotaoEditar, EnviarImagem, ImagemEditavel, T, useVer } from './editaveis';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-export interface ConfigSite extends ConfigPrestacao {
-  necessidades?: { titulo: string; descricao?: string; prioridade?: string }[];
-  pix_chave?: string | null; pix_tipo?: string | null; pix_nome?: string | null; pix_cidade?: string | null; banco_texto?: string | null;
-  whatsapp?: string | null; instagram?: string | null; email?: string | null; endereco?: string | null; texto_sobre?: string | null;
-  textos?: Record<string, string> | null; imagens?: Record<string, string> | null; github_repo?: string | null;
-  mostrar_transparencia?: boolean; campanha_titulo?: string | null; campanha_meta?: string | null; campanha_arrecadado?: string | null;
-}
-
-let cacheConfig: Promise<ConfigSite> | null = null;
-
-/** Base: site.json (publicado com o site). Por cima: o que a equipe salvou no painel (tabela pc_site). */
-async function carregarConfig(): Promise<ConfigSite> {
-  if (supabaseConfigurado) {
-    const { data } = await supabase.from('configuracoes').select('valor').eq('chave', 'site').maybeSingle();
-    return (data?.valor as ConfigSite) ?? {};
-  }
-  const estatica: ConfigSite = await fetch('/site.json', { cache: 'no-cache' }).then((r) => r.json()).catch(() => ({}));
-  if (!temBackend(estatica)) return estatica;
-  try {
-    const { data, error } = await obterCliente(estatica).from('pc_site').select('valor').eq('id', 1).maybeSingle();
-    if (error) throw error;
-    return mesclarConfig(estatica, data?.valor);
-  } catch {
-    return estatica; // banco fora do ar: o site continua com o que está no site.json
-  }
-}
-
-/** Depois que a equipe salva, o painel pede para reler. */
-export function recarregarConfigSite() { cacheConfig = null; }
-
-export function useConfigSite() {
-  const [c, setC] = useState<ConfigSite | null>(null);
-  useEffect(() => {
-    cacheConfig ??= carregarConfig();
-    cacheConfig.then(setC);
-  }, []);
-  return c;
-}
+export { useConfigSite, recarregarConfigSite, type ConfigSite } from './config';
+import { useConfigSite, type ConfigSite } from './config';
 
 const CORES_PES = ['#E83E8C', '#F7D23E', '#F28C28', '#2457C5', '#E53935', '#7CB342', '#8D5B3E', '#F4B183'];
 
@@ -70,7 +35,7 @@ export function FaixaPes() {
   );
 }
 
-function Titulo({ sobre, children, centro }: { sobre?: string; children: ReactNode; centro?: boolean }) {
+function Titulo({ sobre, children, centro }: { sobre?: ReactNode; children: ReactNode; centro?: boolean }) {
   return (
     <div className={cx('mb-8', centro && 'text-center')}>
       {sobre && <p className="mb-1 text-sm font-bold uppercase tracking-widest text-sol-600">{sobre}</p>}
@@ -88,25 +53,25 @@ export function LayoutSite() {
   const local = useLocation();
   useEffect(() => { setAberto(false); window.scrollTo(0, 0); }, [local.pathname]);
   const t = (k: string) => tx(c?.textos, k);
-  const links = [['/', t('nav.inicio')], ['/doe', t('nav.ajudar')], ...(temPrestacao(c) || c?.mostrar_transparencia ? [[temPrestacao(c) ? '/prestacao-de-contas' : '/transparencia', t('nav.prestacao')]] : []), ['/contato', t('nav.contato')]];
+  const links: [string, string][] = [['/', 'nav.inicio'], ['/doe', 'nav.ajudar'], ...(temPrestacao(c) || c?.mostrar_transparencia ? [[temPrestacao(c) ? '/prestacao-de-contas' : '/transparencia', 'nav.prestacao'] as [string, string]] : []), ['/contato', 'nav.contato']];
   return (
     <div className="flex min-h-screen flex-col bg-white font-sans text-slate-800">
       <a href="#conteudo" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-white focus:px-3 focus:py-2">Pular para o conteúdo</a>
       <header className="sticky top-0 z-40 border-b border-sol-100 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-2">
-          <Link to="/" aria-label="Projeto Pé no Chão — início"><img src={imagemDe(c?.imagens, 'logo')} alt={t('rodape.nome')} className="h-12 w-auto sm:h-14" /></Link>
+          <Link to="/" aria-label="Projeto Pé no Chão — início"><ImagemEditavel chave="logo" alt={t('rodape.nome')} className="h-12 w-auto sm:h-14" /></Link>
           <nav className="hidden items-center gap-1 md:flex" aria-label="Principal">
             {links.map(([to, r]) => (
-              <NavLink key={to} to={to} end className={({ isActive }) => cx('rounded-full px-4 py-2 text-sm font-semibold transition-colors', isActive ? 'bg-sol-100 text-slate-900' : 'text-slate-600 hover:bg-sol-50 hover:text-slate-900')}>{r}</NavLink>
+              <NavLink key={to} to={to} end className={({ isActive }) => cx('rounded-full px-4 py-2 text-sm font-semibold transition-colors', isActive ? 'bg-sol-100 text-slate-900' : 'text-slate-600 hover:bg-sol-50 hover:text-slate-900')}><T k={r} /></NavLink>
             ))}
-            <Link to="/doe" className="ml-2 inline-flex items-center gap-1.5 rounded-full bg-marca-rosa px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:brightness-110"><Heart className="h-4 w-4 fill-white" />{t('nav.doar')}</Link>
+            <Link to="/doe" className="ml-2 inline-flex items-center gap-1.5 rounded-full bg-marca-rosa px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:brightness-110"><Heart className="h-4 w-4 fill-white" /><T k="nav.doar" /></Link>
           </nav>
           <button className="rounded-lg p-2 md:hidden" onClick={() => setAberto(!aberto)} aria-label="Menu" aria-expanded={aberto}>{aberto ? <X /> : <Menu />}</button>
         </div>
         {aberto && (
           <nav className="border-t border-sol-100 px-4 py-3 md:hidden" aria-label="Principal (celular)">
-            {links.map(([to, r]) => <NavLink key={to} to={to} end className="block rounded-lg px-3 py-2.5 font-semibold text-slate-700 hover:bg-sol-50">{r}</NavLink>)}
-            <Link to="/doe" className="mt-2 flex items-center justify-center gap-1.5 rounded-full bg-marca-rosa px-5 py-3 font-bold text-white"><Heart className="h-4 w-4 fill-white" />{t('nav.doar')}</Link>
+            {links.map(([to, r]) => <NavLink key={to} to={to} end className="block rounded-lg px-3 py-2.5 font-semibold text-slate-700 hover:bg-sol-50"><T k={r} /></NavLink>)}
+            <Link to="/doe" className="mt-2 flex items-center justify-center gap-1.5 rounded-full bg-marca-rosa px-5 py-3 font-bold text-white"><Heart className="h-4 w-4 fill-white" /><T k="nav.doar" /></Link>
           </nav>
         )}
       </header>
@@ -115,11 +80,11 @@ export function LayoutSite() {
         <FaixaPes />
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-3">
           <div>
-            <p className="font-titulo text-2xl font-extrabold text-white">{t('rodape.nome')}</p>
-            <p className="mt-2 text-sm">{t('rodape.descricao')}</p>
+            <p className="font-titulo text-2xl font-extrabold text-white"><T k="rodape.nome" /></p>
+            <p className="mt-2 text-sm"><T k="rodape.descricao" /></p>
           </div>
           <div className="space-y-2 text-sm">
-            <p className="font-semibold text-white">{t('rodape.titulo_contato')}</p>
+            <p className="font-semibold text-white"><T k="rodape.titulo_contato" /></p>
             {c?.whatsapp && <a className="flex items-center gap-2 hover:text-white" href={linkWhats(c.whatsapp)!} target="_blank" rel="noreferrer"><MessageCircle className="h-4 w-4" />WhatsApp</a>}
             {c?.instagram && <a className="flex items-center gap-2 hover:text-white" href={`https://instagram.com/${c.instagram.replace('@', '')}`} target="_blank" rel="noreferrer"><Instagram className="h-4 w-4" />@{c.instagram.replace('@', '')}</a>}
             {c?.email && <a className="flex items-center gap-2 hover:text-white" href={`mailto:${c.email}`}><Mail className="h-4 w-4" />{c.email}</a>}
@@ -127,13 +92,13 @@ export function LayoutSite() {
             <Link to="/contato" className="block hover:text-white">Formulário de contato</Link>
           </div>
           <div className="space-y-2 text-sm">
-            <p className="font-semibold text-white">{t('rodape.titulo_transparencia')}</p>
-            {(temPrestacao(c) || c?.mostrar_transparencia) && <Link to={temPrestacao(c) ? '/prestacao-de-contas' : '/transparencia'} className="block hover:text-white">{t('nav.prestacao')}</Link>}
+            <p className="font-semibold text-white"><T k="rodape.titulo_transparencia" /></p>
+            {(temPrestacao(c) || c?.mostrar_transparencia) && <Link to={temPrestacao(c) ? '/prestacao-de-contas' : '/transparencia'} className="block hover:text-white"><T k="nav.prestacao" /></Link>}
             <Link to="/privacidade" className="block hover:text-white">Privacidade e proteção de dados</Link>
             {c && <Link to={supabaseConfigurado ? '/entrar' : temBackend(c) ? '/prestacao-de-contas/gerenciar' : '/editar-site'} className="inline-flex items-center gap-1.5 text-slate-400 hover:text-white"><Lock className="h-3.5 w-3.5" />Área da equipe</Link>}
           </div>
         </div>
-        <p className="border-t border-slate-800 py-4 text-center text-xs text-slate-500">© {new Date().getFullYear()} {t('rodape.assinatura')}</p>
+        <p className="border-t border-slate-800 py-4 text-center text-xs text-slate-500">© {new Date().getFullYear()} <T k="rodape.assinatura" /></p>
       </footer>
     </div>
   );
@@ -152,6 +117,8 @@ export function Inicio() {
   const atividades = tr?.atividades_recentes ?? [];
   const necessidades = supabaseConfigurado ? nec : (c?.necessidades ?? []).map((n, i) => ({ id: i, ...n }));
   const t = (k: string) => tx(c?.textos, k);
+  const ver = useVer();
+  const ed = useEdicao();
   const meta = Number(c?.campanha_meta || 0), arrec = Number(c?.campanha_arrecadado || 0);
 
   return (
@@ -161,16 +128,16 @@ export function Inicio() {
         <div className="pointer-events-none absolute -right-40 -top-40 h-[620px] w-[620px] rounded-full border-[18px] border-dashed border-sol-300/60" aria-hidden="true" />
         <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-14 md:grid-cols-[1.1fr_1fr] md:py-20">
           <div>
-            <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-semibold text-sol-700 shadow-sm ring-1 ring-sol-200"><Sun className="h-4 w-4" />{t('home.etiqueta')}</p>
-            <h1 className="font-titulo text-4xl font-extrabold leading-[1.05] text-slate-900 sm:text-6xl">{partesDestaque(t('home.titulo')).map((p, i, todas) => p.destaque ? <span key={i} className={['text-marca-rosa', 'text-marca-azul', 'text-marca-verde'][todas.slice(0, i).filter((x) => x.destaque).length % 3]}>{p.texto}</span> : p.texto)}</h1>
-            {t('home.subtitulo') && <p className="mt-5 max-w-xl whitespace-pre-line text-lg text-slate-600">{t('home.subtitulo')}</p>}
+            <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-semibold text-sol-700 shadow-sm ring-1 ring-sol-200"><Sun className="h-4 w-4" /><T k="home.etiqueta" /></p>
+            <h1 className="font-titulo text-4xl font-extrabold leading-[1.05] text-slate-900 sm:text-6xl">{ed?.ativo ? <T k="home.titulo" /> : partesDestaque(t('home.titulo')).map((p, i, todas) => p.destaque ? <span key={i} className={['text-marca-rosa', 'text-marca-azul', 'text-marca-verde'][todas.slice(0, i).filter((x) => x.destaque).length % 3]}>{p.texto}</span> : p.texto)}</h1>
+            {ver(t('home.subtitulo')) && <p className="mt-5 max-w-xl whitespace-pre-line text-lg text-slate-600"><T k="home.subtitulo" /></p>}
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link to="/doe" className="inline-flex items-center gap-2 rounded-full bg-marca-rosa px-7 py-3.5 text-base font-bold text-white shadow-lg shadow-pink-200 hover:brightness-110"><Heart className="h-5 w-5 fill-white" />{t('home.botao_doar')}</Link>
-              <Link to="/doe#voluntario" className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-base font-bold text-slate-800 ring-2 ring-slate-900 hover:bg-slate-50"><HandHeart className="h-5 w-5" />{t('home.botao_voluntario')}</Link>
+              <Link to="/doe" className="inline-flex items-center gap-2 rounded-full bg-marca-rosa px-7 py-3.5 text-base font-bold text-white shadow-lg shadow-pink-200 hover:brightness-110"><Heart className="h-5 w-5 fill-white" /><T k="home.botao_doar" /></Link>
+              <Link to="/doe#voluntario" className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-base font-bold text-slate-800 ring-2 ring-slate-900 hover:bg-slate-50"><HandHeart className="h-5 w-5" /><T k="home.botao_voluntario" /></Link>
             </div>
           </div>
           <div className="relative">
-            <img src={imagemDe(c?.imagens, 'hero')} alt={t('rodape.nome')} className="relative w-full rounded-[2rem] bg-white p-4 shadow-xl ring-1 ring-sol-100" />
+            <ImagemEditavel chave="hero" bloco alt={t('rodape.nome')} className="relative w-full rounded-[2rem] bg-white p-4 shadow-xl ring-1 ring-sol-100" />
           </div>
         </div>
       </section>
@@ -178,13 +145,13 @@ export function Inicio() {
       <FaixaPes />
 
       <section className="mx-auto max-w-6xl px-4 py-16">
-        <Titulo sobre={t('home.sobre_etiqueta')}>{t('home.sobre_titulo')}</Titulo>
+        <Titulo sobre={<T k="home.sobre_etiqueta" />}><T k="home.sobre_titulo" /></Titulo>
         <div className="grid gap-10 md:grid-cols-[1.3fr_1fr]">
           <div className="space-y-4 text-lg leading-relaxed text-slate-600">
-            {(c?.texto_sobre ? c.texto_sobre.split(/\n+/) : blocosDeTexto(t('home.sobre_texto')).map((x) => x.texto)).map((p, i) => <p key={i}>{p}</p>)}
+            {ed?.ativo && !c?.texto_sobre ? <p><T k="home.sobre_texto" /></p> : (c?.texto_sobre ? c.texto_sobre.split(/\n+/) : blocosDeTexto(t('home.sobre_texto')).map((x) => x.texto)).map((p, i) => <p key={i}>{p}</p>)}
           </div>
           <div className="grid grid-cols-2 gap-3">
-            {[[Users, 'home.cartao1', 'bg-pink-50 text-marca-rosa'], [Sun, 'home.cartao2', 'bg-sol-50 text-sol-700'], [Package, 'home.cartao3', 'bg-blue-50 text-marca-azul'], [Check, 'home.cartao4', 'bg-green-50 text-marca-verde']].filter(([, k]: any) => t(k)).map(([Ic, k, cl]: any) => (
+            {[[Users, 'home.cartao1', 'bg-pink-50 text-marca-rosa'], [Sun, 'home.cartao2', 'bg-sol-50 text-sol-700'], [Package, 'home.cartao3', 'bg-blue-50 text-marca-azul'], [Check, 'home.cartao4', 'bg-green-50 text-marca-verde']].filter(([, k]: any) => ver(t(k))).map(([Ic, k, cl]: any) => (
               <div key={k} className={cx('flex flex-col gap-2 rounded-2xl p-5', cl)}><Ic className="h-7 w-7" /><p className="font-titulo text-lg font-bold leading-tight text-slate-800">{t(k)}</p></div>
             ))}
           </div>
@@ -194,37 +161,39 @@ export function Inicio() {
       {c?.campanha_titulo && meta > 0 && (
         <section className="bg-sol-400">
           <div className="mx-auto max-w-4xl px-4 py-12 text-center">
-            <p className="text-sm font-bold uppercase tracking-widest text-slate-800">{t('home.campanha_etiqueta')}</p>
+            <p className="text-sm font-bold uppercase tracking-widest text-slate-800"><T k="home.campanha_etiqueta" /></p>
             <h2 className="font-titulo text-3xl font-extrabold text-slate-900">{c.campanha_titulo}</h2>
             <div className="mx-auto mt-5 h-5 max-w-xl overflow-hidden rounded-full bg-white/70 ring-2 ring-slate-900" role="progressbar" aria-valuenow={Math.round((arrec / meta) * 100)} aria-valuemin={0} aria-valuemax={100}>
               <div className="h-full rounded-full bg-marca-rosa" style={{ width: `${Math.min(100, (arrec / meta) * 100)}%` }} />
             </div>
             <p className="mt-2 font-semibold text-slate-900">{dinheiro(arrec)} de {dinheiro(meta)}</p>
-            <Link to="/doe" className="mt-5 inline-flex items-center gap-2 rounded-full bg-slate-900 px-7 py-3 font-bold text-white hover:bg-slate-800"><Heart className="h-5 w-5" />{t('home.campanha_botao')}</Link>
+            <Link to="/doe" className="mt-5 inline-flex items-center gap-2 rounded-full bg-slate-900 px-7 py-3 font-bold text-white hover:bg-slate-800"><Heart className="h-5 w-5" /><T k="home.campanha_botao" /></Link>
           </div>
         </section>
       )}
 
+      {ed?.ativo && !(c?.campanha_titulo && meta > 0) && <div className="bg-sol-50 py-6 text-center"><p className="mb-2 text-sm text-slate-600">Campanha em destaque (opcional): não aparece enquanto não tiver nome e meta.</p><BotaoEditar rotulo="Editar campanha" acao="dados" teste="editar-campanha" /></div>}
+
       <section className="bg-slate-50">
         <div className="mx-auto max-w-6xl px-4 py-16">
-          <Titulo sobre={t('home.ajudar_etiqueta')} centro>{t('home.ajudar_titulo')}</Titulo>
+          <Titulo sobre={<T k="home.ajudar_etiqueta" />} centro><T k="home.ajudar_titulo" /></Titulo>
           <div className="grid gap-5 md:grid-cols-3">
             {[
-              [t('home.card1_titulo'), t('home.card1_texto'), '/doe', '#E83E8C'],
-              [t('home.card2_titulo'), t('home.card2_texto'), '/doe#bens', '#2457C5'],
-              [t('home.card3_titulo'), t('home.card3_texto'), '/doe#voluntario', '#7CB342'],
-            ].map(([ti, d, l, cor]) => (
+              ['home.card1', '/doe', '#E83E8C'],
+              ['home.card2', '/doe#bens', '#2457C5'],
+              ['home.card3', '/doe#voluntario', '#7CB342'],
+            ].map(([k, l, cor]) => (
               <Link key={l} to={l} className="group rounded-3xl bg-white p-7 shadow-sm ring-1 ring-slate-100 transition hover:-translate-y-1 hover:shadow-md">
                 <Pe cor={cor} className="mb-4 h-12 w-8" />
-                <h3 className="font-titulo text-2xl font-bold text-slate-900">{ti}</h3>
-                <p className="mt-2 text-slate-600">{d}</p>
-                <span className="mt-4 inline-block font-semibold text-slate-900 group-hover:underline">{t('home.card_saiba')}</span>
+                <h3 className="font-titulo text-2xl font-bold text-slate-900"><T k={`${k}_titulo`} /></h3>
+                <p className="mt-2 text-slate-600"><T k={`${k}_texto`} /></p>
+                <span className="mt-4 inline-block font-semibold text-slate-900 group-hover:underline"><T k="home.card_saiba" /></span>
               </Link>
             ))}
           </div>
-          {necessidades.length > 0 && (
+          {(necessidades.length > 0 || ed?.ativo) && (
             <div className="mt-10 rounded-3xl bg-white p-6 ring-1 ring-slate-100">
-              <p className="mb-3 font-titulo text-xl font-bold">{t('home.necessidades_titulo')}</p>
+              <p className="mb-3 flex flex-wrap items-center gap-3 font-titulo text-xl font-bold"><T k="home.necessidades_titulo" /><BotaoEditar rotulo="Editar a lista" acao="dados" teste="editar-necessidades" /></p>
               <ul className="flex flex-wrap gap-2">{necessidades.map((n) => <li key={n.id} className={cx('rounded-full px-4 py-1.5 text-sm font-semibold', n.prioridade === 'alta' ? 'bg-pink-100 text-pink-800' : 'bg-sol-100 text-slate-800')}>{n.titulo}</li>)}</ul>
             </div>
           )}
@@ -250,11 +219,11 @@ export function Inicio() {
       <section className="bg-marca-azul">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 py-14 text-center text-white md:flex-row md:text-left">
           <div className="flex-1">
-            <h2 className="font-titulo text-3xl font-extrabold">{temPrestacao(c) || c?.mostrar_transparencia ? t('home.faixa_titulo') : t('home.faixa2_titulo')}</h2>
-            <p className="mt-2 text-blue-100">{temPrestacao(c) || c?.mostrar_transparencia ? t('home.faixa_texto') : t('home.faixa2_texto')}</p>
+            <h2 className="font-titulo text-3xl font-extrabold"><T k={temPrestacao(c) || c?.mostrar_transparencia ? 'home.faixa_titulo' : 'home.faixa2_titulo'} /></h2>
+            <p className="mt-2 text-blue-100"><T k={temPrestacao(c) || c?.mostrar_transparencia ? 'home.faixa_texto' : 'home.faixa2_texto'} /></p>
           </div>
-          {temPrestacao(c) || c?.mostrar_transparencia ? <Link to={temPrestacao(c) ? '/prestacao-de-contas' : '/transparencia'} className="rounded-full bg-white px-7 py-3 font-bold text-marca-azul hover:bg-blue-50">{t('home.faixa_botao')}</Link>
-            : <Link to="/contato" className="rounded-full bg-white px-7 py-3 font-bold text-marca-azul hover:bg-blue-50">{t('home.faixa2_botao')}</Link>}
+          {temPrestacao(c) || c?.mostrar_transparencia ? <Link to={temPrestacao(c) ? '/prestacao-de-contas' : '/transparencia'} className="rounded-full bg-white px-7 py-3 font-bold text-marca-azul hover:bg-blue-50"><T k="home.faixa_botao" /></Link>
+            : <Link to="/contato" className="rounded-full bg-white px-7 py-3 font-bold text-marca-azul hover:bg-blue-50"><T k="home.faixa2_botao" /></Link>}
         </div>
       </section>
     </>
@@ -262,8 +231,9 @@ export function Inicio() {
 }
 
 // ------------------------------------------------------------------ doe
-function ContatoDireto({ titulo, assunto }: { titulo?: string; assunto: string }) {
+function ContatoDireto({ titulo, assunto }: { titulo?: ReactNode; assunto: string }) {
   const c = useConfigSite();
+  const ver = useVer();
   const zap = linkWhats(c?.whatsapp, assunto);
   const vazio = tx(c?.textos, 'contato.vazio');
   return (
@@ -271,12 +241,12 @@ function ContatoDireto({ titulo, assunto }: { titulo?: string; assunto: string }
       {titulo && <p className="font-titulo text-xl font-bold">{titulo}</p>}
       {zap && <a href={zap} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 rounded-full bg-[#25D366] px-6 py-3 font-bold text-white"><MessageCircle className="h-5 w-5" />Chamar no WhatsApp</a>}
       {c?.email && <a href={`mailto:${c.email}?subject=${encodeURIComponent(assunto)}`} className="flex items-center justify-center gap-2 rounded-full bg-slate-900 px-6 py-3 font-bold text-white"><Mail className="h-5 w-5" />Enviar e-mail</a>}
-      {!zap && !c?.email && vazio && <p className="rounded-2xl bg-sol-50 p-4 text-slate-600 ring-1 ring-sol-200">{vazio}</p>}
+      {!zap && !c?.email && ver(vazio) && <p className="rounded-2xl bg-sol-50 p-4 text-slate-600 ring-1 ring-sol-200"><T k="contato.vazio" /></p>}
     </div>
   );
 }
 
-function FormContato({ tipoInicial, titulo, campoMensagem = 'Mensagem' }: { tipoInicial: string; titulo?: string; campoMensagem?: string }) {
+function FormContato({ tipoInicial, titulo, campoMensagem = 'Mensagem' }: { tipoInicial: string; titulo?: ReactNode; campoMensagem?: string }) {
   if (!supabaseConfigurado) {
     const assunto = { voluntario: 'Quero ser voluntário(a) no Projeto Pé no Chão', doacao_bens: 'Quero doar alimentos/materiais para o Projeto Pé no Chão', empresa: 'Quero apoiar o Projeto Pé no Chão (empresa/parceria)' }[tipoInicial] ?? 'Olá! Gostaria de falar com o Projeto Pé no Chão.';
     return <ContatoDireto titulo={titulo} assunto={assunto} />;
@@ -324,14 +294,23 @@ function CaixaPix({ c }: { c: ConfigSite }) {
   const payload = useMemo(() => (c.pix_chave && c.pix_nome ? gerarPixCopiaECola({ chave: c.pix_chave, nome: c.pix_nome, cidade: c.pix_cidade || 'VOTORANTIM', valor, descricao: 'Doacao Pe no Chao' }) : ''), [c, valor]);
   useEffect(() => { if (payload) QRCode.toDataURL(payload, { margin: 1, width: 280, color: { dark: '#111111', light: '#ffffff' } }).then(setQr); }, [payload]);
   const t = (k: string) => tx(c.textos, k);
+  const ver = useVer();
+  const ed = useEdicao();
   const imagemQr = imagemDe(c.imagens, 'qr_pix');
   if (!payload) {
     if (imagemQr) return (
       <div className="rounded-3xl bg-white p-6 text-center shadow-lg ring-1 ring-slate-100 md:p-10">
-        <img src={imagemQr} alt="QR Code PIX do projeto" className="mx-auto max-h-80 w-auto max-w-full rounded-2xl ring-4 ring-sol-300" />
+        <ImagemEditavel chave="qr_pix" alt="QR Code PIX do projeto" className="mx-auto max-h-80 w-auto max-w-full rounded-2xl ring-4 ring-sol-300" />
         <p className="mt-3 text-sm text-slate-500">Aponte a câmera do app do seu banco</p>
         {c.banco_texto && <p className="mt-4 whitespace-pre-line text-sm text-slate-600"><strong>Transferência/depósito:</strong><br />{c.banco_texto}</p>}
-        {t('doe.aviso_pix') && <p className="mt-4 text-xs text-slate-500">{t('doe.aviso_pix')}</p>}
+        {ver(t('doe.aviso_pix')) && <p className="mt-4 text-xs text-slate-500"><T k="doe.aviso_pix" /></p>}
+      </div>
+    );
+    if (ed?.ativo) return (
+      <div className="relative rounded-3xl bg-sol-50 p-8 pb-16 text-center text-slate-600 ring-1 ring-sol-200">
+        <p><T k="doe.sem_pix" /> <Link to="/contato" className="font-semibold underline"><T k="nav.contato" /></Link></p>
+        <div className="mt-4"><BotaoEditar rotulo="Preencher chave PIX" acao="dados" teste="editar-pix" /></div>
+        <EnviarImagem chave="qr_pix" rotulo="Enviar imagem do QR Code" />
       </div>
     );
     return t('doe.sem_pix') ? <div className="rounded-3xl bg-sol-50 p-8 text-center text-slate-600 ring-1 ring-sol-200">{t('doe.sem_pix')} <Link to="/contato" className="font-semibold underline">{t('nav.contato')}</Link></div> : null;
@@ -360,7 +339,7 @@ function CaixaPix({ c }: { c: ConfigSite }) {
         <button onClick={() => copiar(payload)} className="flex w-full items-center justify-center gap-2 rounded-full bg-slate-900 px-6 py-3.5 font-bold text-white hover:bg-slate-800">
           {copiado ? <><Check className="h-5 w-5" />Copiado!</> : <><Copy className="h-5 w-5" />Copiar PIX Copia e Cola{valor ? ` (${dinheiro(valor)})` : ''}</>}
         </button>
-        {t('doe.aviso_pix') && <p className="text-xs text-slate-500">{t('doe.aviso_pix')}</p>}
+        {ver(t('doe.aviso_pix')) && <p className="text-xs text-slate-500"><T k="doe.aviso_pix" /></p>}
         {c.banco_texto && <p className="whitespace-pre-line text-sm text-slate-600"><strong>Transferência/depósito:</strong><br />{c.banco_texto}</p>}
       </div>
     </div>
@@ -374,19 +353,23 @@ export function Doe() {
   useEffect(() => { if (supabaseConfigurado) supabase.from('necessidades').select('*').eq('ativo', true).order('ordem').then(({ data }) => setNec(data || [])); }, []);
   const lista = supabaseConfigurado ? nec : (c?.necessidades ?? []).map((n, i) => ({ id: i, ...n }));
   useEffect(() => { if (local.hash) setTimeout(() => document.querySelector(local.hash)?.scrollIntoView({ behavior: 'smooth' }), 150); }, [local.hash, c]);
+  const ver = useVer();
+  const ed = useEdicao();
   if (!c) return <div className="py-20 text-center text-slate-500">Carregando…</div>;
   const t = (k: string) => tx(c.textos, k);
   return (
     <>
       <section className="bg-gradient-to-b from-pink-50 to-white">
         <div className="mx-auto max-w-5xl px-4 py-14">
-          <Titulo sobre={t('doe.etiqueta')}>{t('doe.titulo')}</Titulo>
+          <Titulo sobre={<T k="doe.etiqueta" />}><T k="doe.titulo" /></Titulo>
           <CaixaPix c={c} />
-          {t('doe.duvidas') && <p className="mt-4 text-center text-sm text-slate-500">{t('doe.duvidas')}</p>}
+          {ed?.ativo && (c.pix_chave || imagemDe(c.imagens, 'qr_pix')) && <p className="mt-3 text-center"><BotaoEditar rotulo="Editar PIX e dados bancários" acao="dados" teste="editar-pix" /></p>}
+          {ver(t('doe.duvidas')) && <p className="mt-4 text-center text-sm text-slate-500"><T k="doe.duvidas" /></p>}
         </div>
       </section>
       <section id="bens" className="mx-auto max-w-5xl scroll-mt-24 px-4 py-14">
-        <Titulo sobre={t('doe.bens_etiqueta')}>{t('doe.bens_titulo')}</Titulo>
+        <Titulo sobre={<T k="doe.bens_etiqueta" />}><T k="doe.bens_titulo" /></Titulo>
+        {ed?.ativo && <p className="-mt-4 mb-4"><BotaoEditar rotulo="Editar a lista do que precisamos" acao="dados" /></p>}
         {lista.length ? (
           <ul className="grid gap-3 sm:grid-cols-2">
             {lista.map((n: any, i: number) => (
@@ -396,25 +379,25 @@ export function Doe() {
               </li>
             ))}
           </ul>
-        ) : t('doe.bens_vazio') ? <p className="text-slate-600">{t('doe.bens_vazio')}</p> : null}
+        ) : ver(t('doe.bens_vazio')) ? <p className="text-slate-600"><T k="doe.bens_vazio" /></p> : null}
         <div className="mt-8 grid gap-6 rounded-3xl bg-slate-50 p-6 md:grid-cols-2">
           <div className="space-y-2 text-slate-600">
-            <p className="font-titulo text-xl font-bold text-slate-900">{t('doe.entrega_titulo')}</p>
-            {c.endereco ? <p className="flex gap-2"><MapPin className="mt-1 h-4 w-4 shrink-0" />{c.endereco}</p> : <p>{t('doe.entrega_texto')}</p>}
+            <p className="font-titulo text-xl font-bold text-slate-900"><T k="doe.entrega_titulo" /></p>
+            {c.endereco && !ed?.ativo ? <p className="flex gap-2"><MapPin className="mt-1 h-4 w-4 shrink-0" />{c.endereco}</p> : <p><T k="doe.entrega_texto" /></p>}
             {linkWhats(c.whatsapp, 'Olá! Quero doar alimentos/materiais para o Projeto Pé no Chão.') && <a href={linkWhats(c.whatsapp, 'Olá! Quero doar alimentos/materiais para o Projeto Pé no Chão.')!} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full bg-[#25D366] px-5 py-2.5 font-bold text-white"><MessageCircle className="h-4 w-4" />Combinar pelo WhatsApp</a>}
             
           </div>
-          <FormContato tipoInicial="doacao_bens" titulo={t('doe.itens_titulo')} campoMensagem="O que você gostaria de doar?" />
+          <FormContato tipoInicial="doacao_bens" titulo={<T k="doe.itens_titulo" />} campoMensagem="O que você gostaria de doar?" />
         </div>
       </section>
       <section id="voluntario" className="scroll-mt-24 bg-green-50">
         <div className="mx-auto grid max-w-5xl gap-8 px-4 py-14 md:grid-cols-2">
           <div>
-            <Titulo sobre={t('doe.vol_etiqueta')}>{t('doe.vol_titulo')}</Titulo>
-            {t('doe.vol_texto') && <p className="whitespace-pre-line text-lg text-slate-600">{t('doe.vol_texto')}</p>}
-            {t('doe.vol_nota') && <p className="mt-4 text-sm text-slate-500">{t('doe.vol_nota')}</p>}
+            <Titulo sobre={<T k="doe.vol_etiqueta" />}><T k="doe.vol_titulo" /></Titulo>
+            {ver(t('doe.vol_texto')) && <p className="whitespace-pre-line text-lg text-slate-600"><T k="doe.vol_texto" /></p>}
+            {ver(t('doe.vol_nota')) && <p className="mt-4 text-sm text-slate-500"><T k="doe.vol_nota" /></p>}
           </div>
-          <div className="rounded-3xl bg-white p-6 shadow-sm"><FormContato tipoInicial="voluntario" titulo={t('doe.vol_bloco')} campoMensagem="Como você gostaria de ajudar? Quais dias e horários?" /></div>
+          <div className="rounded-3xl bg-white p-6 shadow-sm"><FormContato tipoInicial="voluntario" titulo={<T k="doe.vol_bloco" />} campoMensagem="Como você gostaria de ajudar? Quais dias e horários?" /></div>
         </div>
       </section>
     </>
@@ -481,16 +464,19 @@ export function Transparencia() {
 export function Contato() {
   const c = useConfigSite();
   const t = (k: string) => tx(c?.textos, k);
+  const ver = useVer();
+  const ed = useEdicao();
   return (
     <section className="mx-auto grid max-w-5xl gap-10 px-4 py-14 md:grid-cols-[1fr_1.2fr]">
       <div>
-        <Titulo sobre={t('contato.etiqueta')}>{t('contato.titulo')}</Titulo>
+        <Titulo sobre={<T k="contato.etiqueta" />}><T k="contato.titulo" /></Titulo>
         <div className="space-y-3 text-slate-600">
           {linkWhats(c?.whatsapp) && <a href={linkWhats(c?.whatsapp)!} target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-slate-900"><MessageCircle className="h-5 w-5 text-[#25D366]" />WhatsApp</a>}
           {c?.instagram && <a href={`https://instagram.com/${c.instagram.replace('@', '')}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-slate-900"><Instagram className="h-5 w-5 text-marca-rosa" />@{c.instagram.replace('@', '')}</a>}
           {c?.email && <a href={`mailto:${c.email}`} className="flex items-center gap-2 hover:text-slate-900"><Mail className="h-5 w-5 text-marca-azul" />{c.email}</a>}
           {c?.endereco && <p className="flex items-start gap-2"><MapPin className="mt-0.5 h-5 w-5 text-marca-laranja" />{c.endereco}</p>}
-          {t('contato.local') && <p>{t('contato.local')}</p>}
+          {ver(t('contato.local')) && <p><T k="contato.local" /></p>}
+          {ed?.ativo && <p><BotaoEditar rotulo="Editar WhatsApp, Instagram, e-mail e endereço" acao="dados" teste="editar-contatos" /></p>}
         </div>
       </div>
       <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-100"><FormContato tipoInicial="contato" /></div>
@@ -501,11 +487,13 @@ export function Contato() {
 export function Privacidade() {
   const c = useConfigSite();
   const t = (k: string) => tx(c?.textos, k);
+  const ver = useVer();
+  const ed = useEdicao();
   return (
     <section className="mx-auto max-w-3xl space-y-4 px-4 py-14 text-slate-700">
-      <Titulo sobre={t('privacidade.etiqueta')}>{t('privacidade.titulo')}</Titulo>
-      {blocosDeTexto(t('privacidade.texto')).map((b, i) => b.tipo === 'h' ? <h3 key={i} className="font-titulo text-xl font-bold">{b.texto}</h3> : <p key={i}>{b.texto}</p>)}
-      {t('privacidade.link') && <p><Link to="/contato" className="font-semibold underline">{t('privacidade.link')}</Link></p>}
+      <Titulo sobre={<T k="privacidade.etiqueta" />}><T k="privacidade.titulo" /></Titulo>
+      {ed?.ativo ? <div><T k="privacidade.texto" /></div> : blocosDeTexto(t('privacidade.texto')).map((b, i) => b.tipo === 'h' ? <h3 key={i} className="font-titulo text-xl font-bold">{b.texto}</h3> : <p key={i}>{b.texto}</p>)}
+      {ver(t('privacidade.link')) && <p><Link to="/contato" className="font-semibold underline"><T k="privacidade.link" /></Link></p>}
     </section>
   );
 }

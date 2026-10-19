@@ -2,3 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /prestacao-de-contas/gerenciar
+Disallow: /editar-site

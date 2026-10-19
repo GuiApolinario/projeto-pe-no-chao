@@ -1,5 +1,7 @@
 # Aba "Prestação de contas"
 
+> Não consegue fazer a parte do banco (Supabase)? Ela é opcional. Para editar textos, imagens, PIX e contatos veja **[EDITAR-O-SITE.md](EDITAR-O-SITE.md)**: não precisa de banco.
+
 Duas páginas novas no site:
 
 | Página | Para quem | O que faz |

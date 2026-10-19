@@ -15,7 +15,9 @@ Endereço: **https://projetopenochao.ggsistemas.dev.br**
 - **Transparência**: totais recebidos e pagos por período publicado e onde o dinheiro foi aplicado — sem nomes de doadores, fornecedores ou crianças.
 - Contato com consentimento LGPD e página de privacidade.
 
-**Área da equipe** (`/prestacao-de-contas/gerenciar`): lançar entradas, gastos e comprovantes; mudar PIX, contatos, textos, campanha e necessidades **sem mexer no GitHub**; gerenciar acessos e ver a saúde do banco. Um robô diário (GitHub Actions) mantém o banco ativo.
+**Editar o site** (`/editar-site`, sem banco de dados): a equipe muda **todos os textos e imagens**, o PIX (com envio da imagem do QR Code) e os contatos; tudo começa em branco/original e é gravado no GitHub.
+
+**Área da equipe da prestação de contas** (`/prestacao-de-contas/gerenciar`): lançar entradas, gastos e comprovantes; mudar PIX, contatos, textos, campanha e necessidades **sem mexer no GitHub**; gerenciar acessos e ver a saúde do banco. Um robô diário (GitHub Actions) mantém o banco ativo.
 
 **Sistema administrativo completo** (`/admin`, somente equipe convidada)
 - Painel financeiro com 12+ indicadores, alertas e 6 gráficos clicáveis.
@@ -33,6 +35,7 @@ React + TypeScript + Vite + Tailwind · Supabase (PostgreSQL, Auth, Storage) com
 ## Documentação
 | Documento | Conteúdo |
 |---|---|
+| [docs/EDITAR-O-SITE.md](docs/EDITAR-O-SITE.md) | **Editar o site sem programar**: textos, imagens, QR Code do PIX e contatos (sem banco de dados) |
 | [docs/PRESTACAO.md](docs/PRESTACAO.md) | **Aba “Prestação de contas”** (gráficos + área da equipe com fotos): como ver, ativar e usar |
 | [docs/INSTALACAO.md](docs/INSTALACAO.md) | **Passo a passo**: Supabase, GitHub, publicação na GGsistemas e DNS no Registro.br |
 | [docs/USO.md](docs/USO.md) | Manual de uso e rotina de fechamento mensal |

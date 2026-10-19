@@ -8,12 +8,14 @@ import { data as fmtData, dinheiro, lerDinheiro, mesAno, num } from '../lib/form
 import { cx } from '../components/ui';
 import { obterCliente, temBackend, temPrestacao, type ConfigPrestacao } from '../prestacao/config';
 import { mesclarConfig } from '../prestacao/siteConfig';
+import { blocosDeTexto, imagemDe, partesDestaque, tx } from './conteudo';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export interface ConfigSite extends ConfigPrestacao {
   necessidades?: { titulo: string; descricao?: string; prioridade?: string }[];
   pix_chave?: string | null; pix_tipo?: string | null; pix_nome?: string | null; pix_cidade?: string | null; banco_texto?: string | null;
   whatsapp?: string | null; instagram?: string | null; email?: string | null; endereco?: string | null; texto_sobre?: string | null;
+  textos?: Record<string, string> | null; imagens?: Record<string, string> | null; github_repo?: string | null;
   mostrar_transparencia?: boolean; campanha_titulo?: string | null; campanha_meta?: string | null; campanha_arrecadado?: string | null;
 }
 
@@ -85,25 +87,26 @@ export function LayoutSite() {
   const c = useConfigSite();
   const local = useLocation();
   useEffect(() => { setAberto(false); window.scrollTo(0, 0); }, [local.pathname]);
-  const links = [['/', 'Início'], ['/doe', 'Como ajudar'], ...(temPrestacao(c) || c?.mostrar_transparencia ? [[temPrestacao(c) ? '/prestacao-de-contas' : '/transparencia', 'Prestação de contas']] : []), ['/contato', 'Contato']];
+  const t = (k: string) => tx(c?.textos, k);
+  const links = [['/', t('nav.inicio')], ['/doe', t('nav.ajudar')], ...(temPrestacao(c) || c?.mostrar_transparencia ? [[temPrestacao(c) ? '/prestacao-de-contas' : '/transparencia', t('nav.prestacao')]] : []), ['/contato', t('nav.contato')]];
   return (
     <div className="flex min-h-screen flex-col bg-white font-sans text-slate-800">
       <a href="#conteudo" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-white focus:px-3 focus:py-2">Pular para o conteúdo</a>
       <header className="sticky top-0 z-40 border-b border-sol-100 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-2">
-          <Link to="/" aria-label="Projeto Pé no Chão — início"><img src="/logo-640.jpg" alt="Projeto Pé no Chão" className="h-12 w-auto sm:h-14" /></Link>
+          <Link to="/" aria-label="Projeto Pé no Chão — início"><img src={imagemDe(c?.imagens, 'logo')} alt={t('rodape.nome')} className="h-12 w-auto sm:h-14" /></Link>
           <nav className="hidden items-center gap-1 md:flex" aria-label="Principal">
             {links.map(([to, r]) => (
               <NavLink key={to} to={to} end className={({ isActive }) => cx('rounded-full px-4 py-2 text-sm font-semibold transition-colors', isActive ? 'bg-sol-100 text-slate-900' : 'text-slate-600 hover:bg-sol-50 hover:text-slate-900')}>{r}</NavLink>
             ))}
-            <Link to="/doe" className="ml-2 inline-flex items-center gap-1.5 rounded-full bg-marca-rosa px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:brightness-110"><Heart className="h-4 w-4 fill-white" />Doe agora</Link>
+            <Link to="/doe" className="ml-2 inline-flex items-center gap-1.5 rounded-full bg-marca-rosa px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:brightness-110"><Heart className="h-4 w-4 fill-white" />{t('nav.doar')}</Link>
           </nav>
           <button className="rounded-lg p-2 md:hidden" onClick={() => setAberto(!aberto)} aria-label="Menu" aria-expanded={aberto}>{aberto ? <X /> : <Menu />}</button>
         </div>
         {aberto && (
           <nav className="border-t border-sol-100 px-4 py-3 md:hidden" aria-label="Principal (celular)">
             {links.map(([to, r]) => <NavLink key={to} to={to} end className="block rounded-lg px-3 py-2.5 font-semibold text-slate-700 hover:bg-sol-50">{r}</NavLink>)}
-            <Link to="/doe" className="mt-2 flex items-center justify-center gap-1.5 rounded-full bg-marca-rosa px-5 py-3 font-bold text-white"><Heart className="h-4 w-4 fill-white" />Doe agora</Link>
+            <Link to="/doe" className="mt-2 flex items-center justify-center gap-1.5 rounded-full bg-marca-rosa px-5 py-3 font-bold text-white"><Heart className="h-4 w-4 fill-white" />{t('nav.doar')}</Link>
           </nav>
         )}
       </header>
@@ -112,11 +115,11 @@ export function LayoutSite() {
         <FaixaPes />
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-3">
           <div>
-            <p className="font-titulo text-2xl font-extrabold text-white">Projeto Pé no Chão</p>
-            <p className="mt-2 text-sm">Ações com crianças e com a comunidade em Votorantim/SP.</p>
+            <p className="font-titulo text-2xl font-extrabold text-white">{t('rodape.nome')}</p>
+            <p className="mt-2 text-sm">{t('rodape.descricao')}</p>
           </div>
           <div className="space-y-2 text-sm">
-            <p className="font-semibold text-white">Fale com a gente</p>
+            <p className="font-semibold text-white">{t('rodape.titulo_contato')}</p>
             {c?.whatsapp && <a className="flex items-center gap-2 hover:text-white" href={linkWhats(c.whatsapp)!} target="_blank" rel="noreferrer"><MessageCircle className="h-4 w-4" />WhatsApp</a>}
             {c?.instagram && <a className="flex items-center gap-2 hover:text-white" href={`https://instagram.com/${c.instagram.replace('@', '')}`} target="_blank" rel="noreferrer"><Instagram className="h-4 w-4" />@{c.instagram.replace('@', '')}</a>}
             {c?.email && <a className="flex items-center gap-2 hover:text-white" href={`mailto:${c.email}`}><Mail className="h-4 w-4" />{c.email}</a>}
@@ -124,13 +127,13 @@ export function LayoutSite() {
             <Link to="/contato" className="block hover:text-white">Formulário de contato</Link>
           </div>
           <div className="space-y-2 text-sm">
-            <p className="font-semibold text-white">Transparência</p>
-            {(temPrestacao(c) || c?.mostrar_transparencia) && <Link to={temPrestacao(c) ? '/prestacao-de-contas' : '/transparencia'} className="block hover:text-white">Prestação de contas</Link>}
+            <p className="font-semibold text-white">{t('rodape.titulo_transparencia')}</p>
+            {(temPrestacao(c) || c?.mostrar_transparencia) && <Link to={temPrestacao(c) ? '/prestacao-de-contas' : '/transparencia'} className="block hover:text-white">{t('nav.prestacao')}</Link>}
             <Link to="/privacidade" className="block hover:text-white">Privacidade e proteção de dados</Link>
-            {(supabaseConfigurado || temBackend(c)) && <Link to={supabaseConfigurado ? '/entrar' : '/prestacao-de-contas/gerenciar'} className="inline-flex items-center gap-1.5 text-slate-400 hover:text-white"><Lock className="h-3.5 w-3.5" />Área da equipe</Link>}
+            {c && <Link to={supabaseConfigurado ? '/entrar' : temBackend(c) ? '/prestacao-de-contas/gerenciar' : '/editar-site'} className="inline-flex items-center gap-1.5 text-slate-400 hover:text-white"><Lock className="h-3.5 w-3.5" />Área da equipe</Link>}
           </div>
         </div>
-        <p className="border-t border-slate-800 py-4 text-center text-xs text-slate-500">© {new Date().getFullYear()} Projeto Pé no Chão · Votorantim/SP</p>
+        <p className="border-t border-slate-800 py-4 text-center text-xs text-slate-500">© {new Date().getFullYear()} {t('rodape.assinatura')}</p>
       </footer>
     </div>
   );
@@ -148,6 +151,7 @@ export function Inicio() {
   }, []);
   const atividades = tr?.atividades_recentes ?? [];
   const necessidades = supabaseConfigurado ? nec : (c?.necessidades ?? []).map((n, i) => ({ id: i, ...n }));
+  const t = (k: string) => tx(c?.textos, k);
   const meta = Number(c?.campanha_meta || 0), arrec = Number(c?.campanha_arrecadado || 0);
 
   return (
@@ -157,16 +161,16 @@ export function Inicio() {
         <div className="pointer-events-none absolute -right-40 -top-40 h-[620px] w-[620px] rounded-full border-[18px] border-dashed border-sol-300/60" aria-hidden="true" />
         <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-14 md:grid-cols-[1.1fr_1fr] md:py-20">
           <div>
-            <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-semibold text-sol-700 shadow-sm ring-1 ring-sol-200"><Sun className="h-4 w-4" />Votorantim · São Paulo</p>
-            <h1 className="font-titulo text-4xl font-extrabold leading-[1.05] text-slate-900 sm:text-6xl">Infância com <span className="text-marca-rosa">pé no chão</span>, <span className="text-marca-azul">sol</span> e <span className="text-marca-verde">alegria</span>.</h1>
-            <p className="mt-5 max-w-xl text-lg text-slate-600">O Projeto Pé no Chão realiza ações com crianças e com a comunidade nos bairros Jardim Dandara e Jardim Cerrado. Cada doação vira brincadeira, aprendizado e cuidado.</p>
+            <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-semibold text-sol-700 shadow-sm ring-1 ring-sol-200"><Sun className="h-4 w-4" />{t('home.etiqueta')}</p>
+            <h1 className="font-titulo text-4xl font-extrabold leading-[1.05] text-slate-900 sm:text-6xl">{partesDestaque(t('home.titulo')).map((p, i, todas) => p.destaque ? <span key={i} className={['text-marca-rosa', 'text-marca-azul', 'text-marca-verde'][todas.slice(0, i).filter((x) => x.destaque).length % 3]}>{p.texto}</span> : p.texto)}</h1>
+            {t('home.subtitulo') && <p className="mt-5 max-w-xl whitespace-pre-line text-lg text-slate-600">{t('home.subtitulo')}</p>}
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link to="/doe" className="inline-flex items-center gap-2 rounded-full bg-marca-rosa px-7 py-3.5 text-base font-bold text-white shadow-lg shadow-pink-200 hover:brightness-110"><Heart className="h-5 w-5 fill-white" />Quero doar</Link>
-              <Link to="/doe#voluntario" className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-base font-bold text-slate-800 ring-2 ring-slate-900 hover:bg-slate-50"><HandHeart className="h-5 w-5" />Ser voluntário</Link>
+              <Link to="/doe" className="inline-flex items-center gap-2 rounded-full bg-marca-rosa px-7 py-3.5 text-base font-bold text-white shadow-lg shadow-pink-200 hover:brightness-110"><Heart className="h-5 w-5 fill-white" />{t('home.botao_doar')}</Link>
+              <Link to="/doe#voluntario" className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-base font-bold text-slate-800 ring-2 ring-slate-900 hover:bg-slate-50"><HandHeart className="h-5 w-5" />{t('home.botao_voluntario')}</Link>
             </div>
           </div>
           <div className="relative">
-            <img src="/logo.jpg" alt="Logotipo do Projeto Pé no Chão: sol com pezinhos coloridos e guarda-chuva de frevo" className="relative w-full rounded-[2rem] bg-white p-4 shadow-xl ring-1 ring-sol-100" />
+            <img src={imagemDe(c?.imagens, 'hero')} alt={t('rodape.nome')} className="relative w-full rounded-[2rem] bg-white p-4 shadow-xl ring-1 ring-sol-100" />
           </div>
         </div>
       </section>
@@ -174,19 +178,14 @@ export function Inicio() {
       <FaixaPes />
 
       <section className="mx-auto max-w-6xl px-4 py-16">
-        <Titulo sobre="Quem somos">Um projeto da comunidade, para a comunidade</Titulo>
+        <Titulo sobre={t('home.sobre_etiqueta')}>{t('home.sobre_titulo')}</Titulo>
         <div className="grid gap-10 md:grid-cols-[1.3fr_1fr]">
           <div className="space-y-4 text-lg leading-relaxed text-slate-600">
-            {c?.texto_sobre ? c.texto_sobre.split(/\n+/).map((p, i) => <p key={i}>{p}</p>) : (
-              <>
-                <p>O Projeto Pé no Chão é uma iniciativa social de Votorantim/SP que desenvolve ações voltadas ao atendimento de crianças e ao fortalecimento da comunidade.</p>
-                <p>Nossa atuação acontece nos bairros Jardim Dandara e Jardim Cerrado, com atividades que unem convivência, esporte, cultura, alimentação e cuidado.</p>
-              </>
-            )}
+            {(c?.texto_sobre ? c.texto_sobre.split(/\n+/) : blocosDeTexto(t('home.sobre_texto')).map((x) => x.texto)).map((p, i) => <p key={i}>{p}</p>)}
           </div>
           <div className="grid grid-cols-2 gap-3">
-            {[[Users, 'Crianças no centro', 'bg-pink-50 text-marca-rosa'], [Sun, 'Convivência e brincadeira', 'bg-sol-50 text-sol-700'], [Package, 'Doações bem cuidadas', 'bg-blue-50 text-marca-azul'], [Check, 'Cuidado com cada doação', 'bg-green-50 text-marca-verde']].map(([Ic, t, cl]: any) => (
-              <div key={t} className={cx('flex flex-col gap-2 rounded-2xl p-5', cl)}><Ic className="h-7 w-7" /><p className="font-titulo text-lg font-bold leading-tight text-slate-800">{t}</p></div>
+            {[[Users, 'home.cartao1', 'bg-pink-50 text-marca-rosa'], [Sun, 'home.cartao2', 'bg-sol-50 text-sol-700'], [Package, 'home.cartao3', 'bg-blue-50 text-marca-azul'], [Check, 'home.cartao4', 'bg-green-50 text-marca-verde']].filter(([, k]: any) => t(k)).map(([Ic, k, cl]: any) => (
+              <div key={k} className={cx('flex flex-col gap-2 rounded-2xl p-5', cl)}><Ic className="h-7 w-7" /><p className="font-titulo text-lg font-bold leading-tight text-slate-800">{t(k)}</p></div>
             ))}
           </div>
         </div>
@@ -195,37 +194,37 @@ export function Inicio() {
       {c?.campanha_titulo && meta > 0 && (
         <section className="bg-sol-400">
           <div className="mx-auto max-w-4xl px-4 py-12 text-center">
-            <p className="text-sm font-bold uppercase tracking-widest text-slate-800">Campanha</p>
+            <p className="text-sm font-bold uppercase tracking-widest text-slate-800">{t('home.campanha_etiqueta')}</p>
             <h2 className="font-titulo text-3xl font-extrabold text-slate-900">{c.campanha_titulo}</h2>
             <div className="mx-auto mt-5 h-5 max-w-xl overflow-hidden rounded-full bg-white/70 ring-2 ring-slate-900" role="progressbar" aria-valuenow={Math.round((arrec / meta) * 100)} aria-valuemin={0} aria-valuemax={100}>
               <div className="h-full rounded-full bg-marca-rosa" style={{ width: `${Math.min(100, (arrec / meta) * 100)}%` }} />
             </div>
             <p className="mt-2 font-semibold text-slate-900">{dinheiro(arrec)} de {dinheiro(meta)}</p>
-            <Link to="/doe" className="mt-5 inline-flex items-center gap-2 rounded-full bg-slate-900 px-7 py-3 font-bold text-white hover:bg-slate-800"><Heart className="h-5 w-5" />Contribuir</Link>
+            <Link to="/doe" className="mt-5 inline-flex items-center gap-2 rounded-full bg-slate-900 px-7 py-3 font-bold text-white hover:bg-slate-800"><Heart className="h-5 w-5" />{t('home.campanha_botao')}</Link>
           </div>
         </section>
       )}
 
       <section className="bg-slate-50">
         <div className="mx-auto max-w-6xl px-4 py-16">
-          <Titulo sobre="Como ajudar" centro>Toda ajuda faz diferença</Titulo>
+          <Titulo sobre={t('home.ajudar_etiqueta')} centro>{t('home.ajudar_titulo')}</Titulo>
           <div className="grid gap-5 md:grid-cols-3">
             {[
-              ['Doe pelo PIX', 'Rápido e seguro: leia o QR Code ou copie a chave PIX do projeto.', '/doe', '#E83E8C'],
-              ['Doe alimentos e materiais', 'Veja a lista do que mais precisamos agora e combine a entrega.', '/doe#bens', '#2457C5'],
-              ['Seja voluntário', 'Tem um tempinho e um talento? Venha somar com a gente nas atividades.', '/doe#voluntario', '#7CB342'],
-            ].map(([t, d, l, cor]) => (
-              <Link key={t} to={l} className="group rounded-3xl bg-white p-7 shadow-sm ring-1 ring-slate-100 transition hover:-translate-y-1 hover:shadow-md">
+              [t('home.card1_titulo'), t('home.card1_texto'), '/doe', '#E83E8C'],
+              [t('home.card2_titulo'), t('home.card2_texto'), '/doe#bens', '#2457C5'],
+              [t('home.card3_titulo'), t('home.card3_texto'), '/doe#voluntario', '#7CB342'],
+            ].map(([ti, d, l, cor]) => (
+              <Link key={l} to={l} className="group rounded-3xl bg-white p-7 shadow-sm ring-1 ring-slate-100 transition hover:-translate-y-1 hover:shadow-md">
                 <Pe cor={cor} className="mb-4 h-12 w-8" />
-                <h3 className="font-titulo text-2xl font-bold text-slate-900">{t}</h3>
+                <h3 className="font-titulo text-2xl font-bold text-slate-900">{ti}</h3>
                 <p className="mt-2 text-slate-600">{d}</p>
-                <span className="mt-4 inline-block font-semibold text-slate-900 group-hover:underline">Saiba mais →</span>
+                <span className="mt-4 inline-block font-semibold text-slate-900 group-hover:underline">{t('home.card_saiba')}</span>
               </Link>
             ))}
           </div>
           {necessidades.length > 0 && (
             <div className="mt-10 rounded-3xl bg-white p-6 ring-1 ring-slate-100">
-              <p className="mb-3 font-titulo text-xl font-bold">Precisamos agora</p>
+              <p className="mb-3 font-titulo text-xl font-bold">{t('home.necessidades_titulo')}</p>
               <ul className="flex flex-wrap gap-2">{necessidades.map((n) => <li key={n.id} className={cx('rounded-full px-4 py-1.5 text-sm font-semibold', n.prioridade === 'alta' ? 'bg-pink-100 text-pink-800' : 'bg-sol-100 text-slate-800')}>{n.titulo}</li>)}</ul>
             </div>
           )}
@@ -251,11 +250,11 @@ export function Inicio() {
       <section className="bg-marca-azul">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 py-14 text-center text-white md:flex-row md:text-left">
           <div className="flex-1">
-            <h2 className="font-titulo text-3xl font-extrabold">{temPrestacao(c) || c?.mostrar_transparencia ? 'Transparência é parte do nosso jeito de fazer' : 'Vamos conversar?'}</h2>
-            <p className="mt-2 text-blue-100">{temPrestacao(c) ? 'Veja quanto recebemos, no que usamos cada doação e os comprovantes dos gastos.' : c?.mostrar_transparencia ? 'Cada real recebido e cada compra realizada são registrados com comprovante e conferidos antes de entrar na prestação de contas.' : 'Quer conhecer o projeto, ajudar ou propor uma parceria? Fale com a gente.'}</p>
+            <h2 className="font-titulo text-3xl font-extrabold">{temPrestacao(c) || c?.mostrar_transparencia ? t('home.faixa_titulo') : t('home.faixa2_titulo')}</h2>
+            <p className="mt-2 text-blue-100">{temPrestacao(c) || c?.mostrar_transparencia ? t('home.faixa_texto') : t('home.faixa2_texto')}</p>
           </div>
-          {temPrestacao(c) || c?.mostrar_transparencia ? <Link to={temPrestacao(c) ? '/prestacao-de-contas' : '/transparencia'} className="rounded-full bg-white px-7 py-3 font-bold text-marca-azul hover:bg-blue-50">Ver prestação de contas</Link>
-            : <Link to="/contato" className="rounded-full bg-white px-7 py-3 font-bold text-marca-azul hover:bg-blue-50">Fale com a gente</Link>}
+          {temPrestacao(c) || c?.mostrar_transparencia ? <Link to={temPrestacao(c) ? '/prestacao-de-contas' : '/transparencia'} className="rounded-full bg-white px-7 py-3 font-bold text-marca-azul hover:bg-blue-50">{t('home.faixa_botao')}</Link>
+            : <Link to="/contato" className="rounded-full bg-white px-7 py-3 font-bold text-marca-azul hover:bg-blue-50">{t('home.faixa2_botao')}</Link>}
         </div>
       </section>
     </>
@@ -266,12 +265,13 @@ export function Inicio() {
 function ContatoDireto({ titulo, assunto }: { titulo?: string; assunto: string }) {
   const c = useConfigSite();
   const zap = linkWhats(c?.whatsapp, assunto);
+  const vazio = tx(c?.textos, 'contato.vazio');
   return (
     <div className="space-y-3">
       {titulo && <p className="font-titulo text-xl font-bold">{titulo}</p>}
       {zap && <a href={zap} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 rounded-full bg-[#25D366] px-6 py-3 font-bold text-white"><MessageCircle className="h-5 w-5" />Chamar no WhatsApp</a>}
       {c?.email && <a href={`mailto:${c.email}?subject=${encodeURIComponent(assunto)}`} className="flex items-center justify-center gap-2 rounded-full bg-slate-900 px-6 py-3 font-bold text-white"><Mail className="h-5 w-5" />Enviar e-mail</a>}
-      {!zap && !c?.email && <p className="rounded-2xl bg-sol-50 p-4 text-slate-600 ring-1 ring-sol-200">Os canais de contato do projeto serão publicados aqui em breve.</p>}
+      {!zap && !c?.email && vazio && <p className="rounded-2xl bg-sol-50 p-4 text-slate-600 ring-1 ring-sol-200">{vazio}</p>}
     </div>
   );
 }
@@ -323,7 +323,19 @@ function CaixaPix({ c }: { c: ConfigSite }) {
   const [copiado, setCopiado] = useState(false);
   const payload = useMemo(() => (c.pix_chave && c.pix_nome ? gerarPixCopiaECola({ chave: c.pix_chave, nome: c.pix_nome, cidade: c.pix_cidade || 'VOTORANTIM', valor, descricao: 'Doacao Pe no Chao' }) : ''), [c, valor]);
   useEffect(() => { if (payload) QRCode.toDataURL(payload, { margin: 1, width: 280, color: { dark: '#111111', light: '#ffffff' } }).then(setQr); }, [payload]);
-  if (!payload) return <div className="rounded-3xl bg-sol-50 p-8 text-center text-slate-600 ring-1 ring-sol-200">A chave PIX oficial do projeto será publicada aqui em breve. Enquanto isso, <Link to="/contato" className="font-semibold underline">fale com a gente</Link>.</div>;
+  const t = (k: string) => tx(c.textos, k);
+  const imagemQr = imagemDe(c.imagens, 'qr_pix');
+  if (!payload) {
+    if (imagemQr) return (
+      <div className="rounded-3xl bg-white p-6 text-center shadow-lg ring-1 ring-slate-100 md:p-10">
+        <img src={imagemQr} alt="QR Code PIX do projeto" className="mx-auto max-h-80 w-auto max-w-full rounded-2xl ring-4 ring-sol-300" />
+        <p className="mt-3 text-sm text-slate-500">Aponte a câmera do app do seu banco</p>
+        {c.banco_texto && <p className="mt-4 whitespace-pre-line text-sm text-slate-600"><strong>Transferência/depósito:</strong><br />{c.banco_texto}</p>}
+        {t('doe.aviso_pix') && <p className="mt-4 text-xs text-slate-500">{t('doe.aviso_pix')}</p>}
+      </div>
+    );
+    return t('doe.sem_pix') ? <div className="rounded-3xl bg-sol-50 p-8 text-center text-slate-600 ring-1 ring-sol-200">{t('doe.sem_pix')} <Link to="/contato" className="font-semibold underline">{t('nav.contato')}</Link></div> : null;
+  }
   async function copiar(t: string) { try { await navigator.clipboard.writeText(t); setCopiado(true); setTimeout(() => setCopiado(false), 2500); } catch { /* sem permissão */ } }
   return (
     <div className="grid items-center gap-8 rounded-3xl bg-white p-6 shadow-lg ring-1 ring-slate-100 md:grid-cols-[auto_1fr] md:p-10">
@@ -348,7 +360,7 @@ function CaixaPix({ c }: { c: ConfigSite }) {
         <button onClick={() => copiar(payload)} className="flex w-full items-center justify-center gap-2 rounded-full bg-slate-900 px-6 py-3.5 font-bold text-white hover:bg-slate-800">
           {copiado ? <><Check className="h-5 w-5" />Copiado!</> : <><Copy className="h-5 w-5" />Copiar PIX Copia e Cola{valor ? ` (${dinheiro(valor)})` : ''}</>}
         </button>
-        <p className="text-xs text-slate-500">Confira sempre o nome do favorecido antes de confirmar. O projeto nunca pede doações por mensagens de números desconhecidos.</p>
+        {t('doe.aviso_pix') && <p className="text-xs text-slate-500">{t('doe.aviso_pix')}</p>}
         {c.banco_texto && <p className="whitespace-pre-line text-sm text-slate-600"><strong>Transferência/depósito:</strong><br />{c.banco_texto}</p>}
       </div>
     </div>
@@ -363,17 +375,18 @@ export function Doe() {
   const lista = supabaseConfigurado ? nec : (c?.necessidades ?? []).map((n, i) => ({ id: i, ...n }));
   useEffect(() => { if (local.hash) setTimeout(() => document.querySelector(local.hash)?.scrollIntoView({ behavior: 'smooth' }), 150); }, [local.hash, c]);
   if (!c) return <div className="py-20 text-center text-slate-500">Carregando…</div>;
+  const t = (k: string) => tx(c.textos, k);
   return (
     <>
       <section className="bg-gradient-to-b from-pink-50 to-white">
         <div className="mx-auto max-w-5xl px-4 py-14">
-          <Titulo sobre="Doe agora">Sua doação vira cuidado com as crianças</Titulo>
+          <Titulo sobre={t('doe.etiqueta')}>{t('doe.titulo')}</Titulo>
           <CaixaPix c={c} />
-          <p className="mt-4 text-center text-sm text-slate-500">Dúvidas sobre a doação? Fale com a gente pelo WhatsApp ou e-mail.</p>
+          {t('doe.duvidas') && <p className="mt-4 text-center text-sm text-slate-500">{t('doe.duvidas')}</p>}
         </div>
       </section>
       <section id="bens" className="mx-auto max-w-5xl scroll-mt-24 px-4 py-14">
-        <Titulo sobre="Doação de alimentos e materiais">Do que precisamos</Titulo>
+        <Titulo sobre={t('doe.bens_etiqueta')}>{t('doe.bens_titulo')}</Titulo>
         {lista.length ? (
           <ul className="grid gap-3 sm:grid-cols-2">
             {lista.map((n: any, i: number) => (
@@ -383,25 +396,25 @@ export function Doe() {
               </li>
             ))}
           </ul>
-        ) : <p className="text-slate-600">Fale com a gente para saber o que está faltando no momento.</p>}
+        ) : t('doe.bens_vazio') ? <p className="text-slate-600">{t('doe.bens_vazio')}</p> : null}
         <div className="mt-8 grid gap-6 rounded-3xl bg-slate-50 p-6 md:grid-cols-2">
           <div className="space-y-2 text-slate-600">
-            <p className="font-titulo text-xl font-bold text-slate-900">Como entregar</p>
-            {c.endereco ? <p className="flex gap-2"><MapPin className="mt-1 h-4 w-4 shrink-0" />{c.endereco}</p> : <p>Combine a entrega com a equipe pelo formulário ao lado.</p>}
+            <p className="font-titulo text-xl font-bold text-slate-900">{t('doe.entrega_titulo')}</p>
+            {c.endereco ? <p className="flex gap-2"><MapPin className="mt-1 h-4 w-4 shrink-0" />{c.endereco}</p> : <p>{t('doe.entrega_texto')}</p>}
             {linkWhats(c.whatsapp, 'Olá! Quero doar alimentos/materiais para o Projeto Pé no Chão.') && <a href={linkWhats(c.whatsapp, 'Olá! Quero doar alimentos/materiais para o Projeto Pé no Chão.')!} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full bg-[#25D366] px-5 py-2.5 font-bold text-white"><MessageCircle className="h-4 w-4" />Combinar pelo WhatsApp</a>}
             
           </div>
-          <FormContato tipoInicial="doacao_bens" titulo="Quero doar itens" campoMensagem="O que você gostaria de doar?" />
+          <FormContato tipoInicial="doacao_bens" titulo={t('doe.itens_titulo')} campoMensagem="O que você gostaria de doar?" />
         </div>
       </section>
       <section id="voluntario" className="scroll-mt-24 bg-green-50">
         <div className="mx-auto grid max-w-5xl gap-8 px-4 py-14 md:grid-cols-2">
           <div>
-            <Titulo sobre="Voluntariado">Venha somar com a gente</Titulo>
-            <p className="text-lg text-slate-600">Recreação, esporte, reforço escolar, cozinha, organização de doações, comunicação… Conte o que você gosta de fazer e quando tem disponibilidade.</p>
-            <p className="mt-4 text-sm text-slate-500">Empresas e parceiros também são bem-vindos: fale com a gente.</p>
+            <Titulo sobre={t('doe.vol_etiqueta')}>{t('doe.vol_titulo')}</Titulo>
+            {t('doe.vol_texto') && <p className="whitespace-pre-line text-lg text-slate-600">{t('doe.vol_texto')}</p>}
+            {t('doe.vol_nota') && <p className="mt-4 text-sm text-slate-500">{t('doe.vol_nota')}</p>}
           </div>
-          <div className="rounded-3xl bg-white p-6 shadow-sm"><FormContato tipoInicial="voluntario" titulo="Quero ser voluntário(a)" campoMensagem="Como você gostaria de ajudar? Quais dias e horários?" /></div>
+          <div className="rounded-3xl bg-white p-6 shadow-sm"><FormContato tipoInicial="voluntario" titulo={t('doe.vol_bloco')} campoMensagem="Como você gostaria de ajudar? Quais dias e horários?" /></div>
         </div>
       </section>
     </>
@@ -467,16 +480,17 @@ export function Transparencia() {
 // ------------------------------------------------------------------ contato e privacidade
 export function Contato() {
   const c = useConfigSite();
+  const t = (k: string) => tx(c?.textos, k);
   return (
     <section className="mx-auto grid max-w-5xl gap-10 px-4 py-14 md:grid-cols-[1fr_1.2fr]">
       <div>
-        <Titulo sobre="Contato">Fale com o Projeto Pé no Chão</Titulo>
+        <Titulo sobre={t('contato.etiqueta')}>{t('contato.titulo')}</Titulo>
         <div className="space-y-3 text-slate-600">
           {linkWhats(c?.whatsapp) && <a href={linkWhats(c?.whatsapp)!} target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-slate-900"><MessageCircle className="h-5 w-5 text-[#25D366]" />WhatsApp</a>}
           {c?.instagram && <a href={`https://instagram.com/${c.instagram.replace('@', '')}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-slate-900"><Instagram className="h-5 w-5 text-marca-rosa" />@{c.instagram.replace('@', '')}</a>}
           {c?.email && <a href={`mailto:${c.email}`} className="flex items-center gap-2 hover:text-slate-900"><Mail className="h-5 w-5 text-marca-azul" />{c.email}</a>}
           {c?.endereco && <p className="flex items-start gap-2"><MapPin className="mt-0.5 h-5 w-5 text-marca-laranja" />{c.endereco}</p>}
-          <p>Votorantim · São Paulo</p>
+          {t('contato.local') && <p>{t('contato.local')}</p>}
         </div>
       </div>
       <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-100"><FormContato tipoInicial="contato" /></div>
@@ -485,18 +499,13 @@ export function Contato() {
 }
 
 export function Privacidade() {
+  const c = useConfigSite();
+  const t = (k: string) => tx(c?.textos, k);
   return (
     <section className="mx-auto max-w-3xl space-y-4 px-4 py-14 text-slate-700">
-      <Titulo sobre="LGPD">Privacidade e proteção de dados</Titulo>
-      <p>O Projeto Pé no Chão trata dados pessoais apenas para as finalidades informadas, conforme a Lei Geral de Proteção de Dados (Lei 13.709/2018) e o Estatuto da Criança e do Adolescente.</p>
-      <h3 className="font-titulo text-xl font-bold">Formulários do site</h3>
-      <p>Nome, e-mail, telefone e mensagem enviados pelos formulários são usados somente para responder ao seu contato, com o seu consentimento. Esses dados ficam acessíveis apenas à administração do projeto.</p>
-      <h3 className="font-titulo text-xl font-bold">Crianças e adolescentes</h3>
-      <p>Dados de participantes são coletados com autorização dos responsáveis, no mínimo necessário, e nunca são publicados. Fotografias só são divulgadas com autorização de uso de imagem.</p>
-      <h3 className="font-titulo text-xl font-bold">Doações</h3>
-      <p>Nomes de doadores não são divulgados publicamente.</p>
-      <h3 className="font-titulo text-xl font-bold">Seus direitos</h3>
-      <p>Você pode pedir acesso, correção ou exclusão dos seus dados a qualquer momento pela página de <Link to="/contato" className="underline">contato</Link>.</p>
+      <Titulo sobre={t('privacidade.etiqueta')}>{t('privacidade.titulo')}</Titulo>
+      {blocosDeTexto(t('privacidade.texto')).map((b, i) => b.tipo === 'h' ? <h3 key={i} className="font-titulo text-xl font-bold">{b.texto}</h3> : <p key={i}>{b.texto}</p>)}
+      {t('privacidade.link') && <p><Link to="/contato" className="font-semibold underline">{t('privacidade.link')}</Link></p>}
     </section>
   );
 }

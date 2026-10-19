@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, Info, Paperclip, Search } from 'lucide-react';
 import { useConfigSite, FaixaPes } from '../site/Site';
+import { tx } from '../site/conteudo';
 import { dataHora, data as fmtData, dinheiro, hojeISO } from '../lib/formato';
 import { anosDisponiveis, buscar, filtrarPeriodo, ordenarRecentes, porCategoria, porMes, resumo, ultimaAtualizacao } from './calculos';
 import { modoDemo, urlFotoPublica } from './config';
@@ -22,6 +23,7 @@ function Pilula({ ativo, onClick, children }: { ativo: boolean; onClick: () => v
 
 export default function Publica() {
   const config = useConfigSite();
+  const t = (k: string) => tx(config?.textos, k);
   const { estado, lancs, erro } = usePrestacaoPublica(config);
   const lightbox = useLightbox();
   const hoje = hojeISO();
@@ -61,9 +63,9 @@ export default function Publica() {
     <>
       <section className="bg-gradient-to-b from-sol-50 via-white to-white">
         <div className="mx-auto max-w-6xl px-4 pb-6 pt-12">
-          <p className="mb-1 text-sm font-bold uppercase tracking-widest text-sol-600">Transparência</p>
-          <h1 className="font-titulo text-4xl font-extrabold leading-tight text-slate-900 sm:text-5xl">Prestação de contas</h1>
-          <p className="mt-3 max-w-2xl text-lg text-slate-600">Aqui você vê, de forma simples, quanto recebemos e como usamos cada doação. Os comprovantes estão disponíveis para consulta.</p>
+          <p className="mb-1 text-sm font-bold uppercase tracking-widest text-sol-600">{t('pc.etiqueta')}</p>
+          <h1 className="font-titulo text-4xl font-extrabold leading-tight text-slate-900 sm:text-5xl">{t('pc.titulo')}</h1>
+          {t('pc.intro') && <p className="mt-3 max-w-2xl text-lg text-slate-600">{t('pc.intro')}</p>}
           {config && modoDemo(config) && (
             <div className="mt-5 flex items-start gap-2 rounded-2xl bg-sol-100 p-4 text-sm text-slate-800 ring-1 ring-sol-300" role="note">
               <Info className="mt-0.5 h-5 w-5 shrink-0" /><p><strong>Dados de exemplo.</strong> Esta é uma pré-visualização de como a página vai ficar. Nenhum valor abaixo é real.</p>
@@ -80,8 +82,8 @@ export default function Publica() {
         {estado === 'ok' && lancs.length === 0 && (
           <div className="rounded-3xl bg-white p-10 text-center ring-1 ring-slate-100">
             <FaixaPes />
-            <p className="font-titulo text-2xl font-bold text-slate-900">Ainda não há registros publicados</p>
-            <p className="mt-2 text-slate-600">Assim que a equipe publicar as primeiras entradas e gastos, eles aparecem aqui.</p>
+            <p className="font-titulo text-2xl font-bold text-slate-900">{t('pc.vazio_titulo')}</p>
+            <p className="mt-2 text-slate-600">{t('pc.vazio_texto')}</p>
           </div>
         )}
 
@@ -113,8 +115,8 @@ export default function Publica() {
             </div>
 
             <section aria-labelledby="comprovantes">
-              <h2 id="comprovantes" className="font-titulo text-3xl font-extrabold text-slate-900">Entradas, gastos e comprovantes</h2>
-              <p className="mb-4 mt-1 text-slate-600">Cada linha é um registro. Toque na miniatura para ver o comprovante.</p>
+              <h2 id="comprovantes" className="font-titulo text-3xl font-extrabold text-slate-900">{t('pc.lista_titulo')}</h2>
+              <p className="mb-4 mt-1 text-slate-600">{t('pc.lista_intro')}</p>
               <div className="mb-4 flex flex-wrap items-center gap-2">
                 <Pilula ativo={tipo === 'todos'} onClick={() => { setTipo('todos'); setMostrar(POR_PAGINA); }}>Tudo</Pilula>
                 <Pilula ativo={tipo === 'entrada'} onClick={() => { setTipo('entrada'); setMostrar(POR_PAGINA); }}>Entradas</Pilula>
@@ -160,13 +162,13 @@ export default function Publica() {
             </section>
 
             <aside className="rounded-3xl bg-slate-50 p-6 text-sm text-slate-600 ring-1 ring-slate-100">
-              <p><strong className="text-slate-800">Sobre estes dados.</strong> Os valores são lançados pela equipe do projeto. Por privacidade, não divulgamos nomes de doadores sem autorização, e as fotos de comprovantes têm dados pessoais (CPF, contas, telefones) cobertos antes de serem publicadas.</p>
+              {t('pc.nota') && <p>{t('pc.nota')}</p>}
               {atualizado && <p className="mt-2">Última atualização: {dataHora(atualizado)}.</p>}
               <p className="mt-2">Ficou com alguma dúvida? <Link to="/contato" className="font-semibold underline">Fale com a gente</Link>.</p>
             </aside>
 
             <div className="text-center">
-              <Link to="/doe" className="inline-flex items-center gap-2 rounded-full bg-marca-rosa px-8 py-4 text-lg font-bold text-white shadow-lg shadow-pink-200 hover:brightness-110"><Heart className="h-5 w-5 fill-white" />Quero ajudar também</Link>
+              <Link to="/doe" className="inline-flex items-center gap-2 rounded-full bg-marca-rosa px-8 py-4 text-lg font-bold text-white shadow-lg shadow-pink-200 hover:brightness-110"><Heart className="h-5 w-5 fill-white" />{t('pc.botao_ajudar')}</Link>
             </div>
           </>
         )}

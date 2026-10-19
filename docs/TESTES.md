@@ -56,6 +56,16 @@ Além disso, o aplicativo foi executado em navegador (Chromium) contra um PostgR
 
 O teste de navegador usa um servidor que *imita* o Supabase (autenticação e armazenamento). As regras de segurança do banco foram testadas no PostgreSQL de verdade; já o armazenamento de arquivos real do Supabase deve ser conferido no roteiro de aceitação (enviar uma foto, abrir como visitante).
 
+**Edição do site sem banco (`/editar-site`)**
+
+| O que | Como foi verificado | Resultado |
+|---|---|---|
+| Conteúdo editável (padrões, só diferenças são guardadas, destaque `*palavra*`, parágrafos) | `src/site/conteudo.test.ts` | ✔ 7 testes |
+| Cliente do GitHub (commit único, não força, erros em português, caminhos perigosos) | `src/prestacao/github.test.ts` com API simulada | ✔ 6 testes |
+| Fluxo no navegador (Chromium) com um GitHub simulado | chave errada/só leitura, editar textos, PIX inválido bloqueia, enviar QR e logotipo, um commit só, site público muda, restaurar, remover imagem, sair, celular | ✔ 32 verificações |
+
+Não foi testado contra o GitHub real (sem a chave do projeto): faça o primeiro salvamento e confira em Actions.
+
 ## Limitações conhecidas
 
 - **Testes contra o Supabase real**: os testes usam PostgreSQL 16 com uma simulação mínima de `auth` e `storage`. Após aplicar as migrações no projeto real, faça o roteiro rápido de aceitação abaixo.

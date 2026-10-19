@@ -71,3 +71,21 @@ export function tarjaDeArraste(x1: number, y1: number, x2: number, y2: number, l
   if (w < 6 || h < 6) return null;
   return { x: x / largura, y: y / altura, w: w / largura, h: h / altura };
 }
+
+/** Imagem do site (logotipo, QR Code): reduz o tamanho; PNG mantém nitidez de QR Code e logotipos. */
+export async function prepararImagemSite(file: File, ladoMax: number, png: boolean): Promise<{ bytes: Uint8Array; ext: 'png' | 'jpg'; tipo: string }> {
+  if (!file.type.startsWith('image/')) throw new ErroArquivo('Escolha uma imagem (JPG ou PNG).');
+  const bmp = await abrirImagem(file);
+  const escala = Math.min(1, ladoMax / Math.max(bmp.width, bmp.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(bmp.width * escala); canvas.height = Math.round(bmp.height * escala);
+  const ctx = canvas.getContext('2d')!;
+  if (!png) { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+  ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+  bmp.close();
+  const tipo = png ? 'image/png' : 'image/jpeg';
+  const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, tipo, 0.85));
+  if (!blob) throw new ErroArquivo('Não foi possível preparar a imagem.');
+  if (blob.size > 2 * 1024 * 1024) throw new ErroArquivo('A imagem continua grande demais (mais de 2 MB). Use uma menor.');
+  return { bytes: new Uint8Array(await blob.arrayBuffer()), ext: png ? 'png' : 'jpg', tipo };
+}

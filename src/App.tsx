@@ -9,6 +9,7 @@ import { supabaseConfigurado } from './lib/supabase';
 
 // área administrativa carregada sob demanda (o site público fica leve)
 const PrestacaoPublica = lazy(() => import('./prestacao/Publica'));
+const EditarSite = lazy(() => import('./site/Editar'));
 const PrestacaoGerenciar = lazy(() => import('./prestacao/Gerenciar'));
 const LayoutAdmin = lazy(() => import('./admin/Layout'));
 const Painel = lazy(() => import('./admin/Painel'));
@@ -55,6 +56,7 @@ export default function App() {
                   <Route path="prestacao-de-contas" element={<PrestacaoPublica />} />
                   <Route path="prestacao-de-contas/gerenciar" element={<PrestacaoGerenciar />} />
                   <Route path="transparencia" element={supabaseConfigurado ? <Transparencia /> : <Navigate to="/prestacao-de-contas" replace />} />
+                  <Route path="editar-site" element={<EditarSite />} />
                   <Route path="contato" element={<Contato />} />
                   <Route path="privacidade" element={<Privacidade />} />
                   <Route path="*" element={<NaoEncontrada />} />

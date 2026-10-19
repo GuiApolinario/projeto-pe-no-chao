@@ -35,6 +35,18 @@ Os três rodam automaticamente no GitHub Actions (`.github/workflows/ci.yml`) a 
 
 Além disso, o aplicativo foi executado em navegador (Chromium) contra um PostgREST real sobre o mesmo banco: todas as 19 telas administrativas e 5 páginas públicas abriram sem erros de API, e os fluxos de configurar PIX, lançar despesa, anexar nota, pagar parcialmente, gerar relatórios e enviar contato anônimo funcionaram. Também foi verificada a largura em celular (390 px) sem rolagem horizontal.
 
+## Aba "Prestação de contas" (docs/PRESTACAO.md)
+
+| O que | Como foi verificado | Resultado |
+|---|---|---|
+| Banco: permissões, validações, histórico, fotos | `supabase/tests/20_prestacao.sql` (22 verificações, em PostgreSQL real) | ✔ visitante só lê a visão pública; tabela base e histórico bloqueados; só admin grava; valores ≤ 0, anexos inválidos e histórico adulterado recusados |
+| Cálculos (totais, saldo acumulado, mês a mês, categorias, busca) | `src/prestacao/*.test.ts` (18 testes) | ✔ somas em centavos; saldo acumulado inclui anos anteriores |
+| Fluxo completo no navegador (Chromium) contra PostgREST + armazenamento simulado | login, lançar entrada e gasto, foto de 3000×4000, tarja sobre CPF, PDF, trocar foto pública↔privada, esconder, excluir, usuário sem permissão, celular | ✔ 28 verificações, sem erros no navegador |
+| Privacidade | verificado nos arquivos gravados e na página pública | ✔ foto de entrada nasce privada; link público de foto privada recusado (HTTP 400); nome oculto não aparece; tarja realmente preta nos pixels; foto reduzida para 1350×1800 sem localização (96 KB) |
+| Página pública | com dados de exemplo e com dados reais, desktop e celular | ✔ cartões, 4 gráficos, tabela alternativa, lista com miniaturas e visualizador |
+
+O teste de navegador usa um servidor que *imita* o Supabase (autenticação e armazenamento). As regras de segurança do banco foram testadas no PostgreSQL de verdade; já o armazenamento de arquivos real do Supabase deve ser conferido no roteiro de aceitação (enviar uma foto, abrir como visitante).
+
 ## Limitações conhecidas
 
 - **Testes contra o Supabase real**: os testes usam PostgreSQL 16 com uma simulação mínima de `auth` e `storage`. Após aplicar as migrações no projeto real, faça o roteiro rápido de aceitação abaixo.

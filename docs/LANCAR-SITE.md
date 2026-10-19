@@ -17,3 +17,7 @@ Para atualizar o conteúdo depois, basta editar o `site.json` direto no servidor
 1. GitHub → repositório `projeto-pe-no-chao` → **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 2. Em **Custom domain** informe `projetopenochao.ggsistemas.dev.br` e salve; depois marque **Enforce HTTPS**.
 3. Aba **Actions → Publicar site (GitHub Pages) → Run workflow** (ou qualquer envio de código à branch).
+
+## Aba "Prestação de contas"
+Já vem no código, escondida. Para ver (com dados de exemplo) e depois ativar de verdade, siga `docs/PRESTACAO.md`.
+Campos do `site.json` ligados a ela: `prestacao_demo` (pré-visualização), `supabase_url` e `supabase_anon_key` (ativação real).

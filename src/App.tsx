@@ -2,11 +2,14 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Link, Route, Routes } from 'react-router-dom';
 import { ProvedorFiltro, ProvedorSessao } from './lib/sessao';
 import { Carregando, ProvedorAvisos } from './components/ui';
+import { Navigate } from 'react-router-dom';
 import { Contato, Doe, Inicio, LayoutSite, Privacidade, Transparencia } from './site/Site';
 import { Entrar, RedefinirSenha } from './site/Entrar';
 import { supabaseConfigurado } from './lib/supabase';
 
 // área administrativa carregada sob demanda (o site público fica leve)
+const PrestacaoPublica = lazy(() => import('./prestacao/Publica'));
+const PrestacaoGerenciar = lazy(() => import('./prestacao/Gerenciar'));
 const LayoutAdmin = lazy(() => import('./admin/Layout'));
 const Painel = lazy(() => import('./admin/Painel'));
 const Movimentacoes = lazy(() => import('./admin/Movimentacoes'));
@@ -49,7 +52,9 @@ export default function App() {
                 <Route element={<LayoutSite />}>
                   <Route index element={<Inicio />} />
                   <Route path="doe" element={<Doe />} />
-                  <Route path="transparencia" element={<Transparencia />} />
+                  <Route path="prestacao-de-contas" element={<PrestacaoPublica />} />
+                  <Route path="prestacao-de-contas/gerenciar" element={<PrestacaoGerenciar />} />
+                  <Route path="transparencia" element={supabaseConfigurado ? <Transparencia /> : <Navigate to="/prestacao-de-contas" replace />} />
                   <Route path="contato" element={<Contato />} />
                   <Route path="privacidade" element={<Privacidade />} />
                   <Route path="*" element={<NaoEncontrada />} />

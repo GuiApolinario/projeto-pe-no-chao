@@ -13,6 +13,10 @@ for f in "$RAIZ"/supabase/migrations/*.sql; do
   echo "→ migração $(basename "$f")"
   run $PSQL -o /dev/null -f "$f"
 done
+for f in "$RAIZ"/supabase/prestacao/*.sql; do
+  echo "→ prestação de contas $(basename "$f")"
+  run $PSQL -o /dev/null -f "$f"
+done
 for f in "$RAIZ"/supabase/tests/[1-9]*.sql; do
   echo "→ testes $(basename "$f")"
   run $PSQL -f "$f"

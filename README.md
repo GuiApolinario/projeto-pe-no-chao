@@ -9,6 +9,7 @@ Endereço: **https://projetopenochao.ggsistemas.dev.br**
 ## O que tem
 
 **Site público**
+- **Prestação de contas** (aba): entrou × saiu, gráficos, onde o dinheiro foi aplicado e comprovantes em fotos — alimentada por uma área simples da equipe (veja docs/PRESTACAO.md).
 - Página inicial com a identidade visual do projeto, quem somos, atividades recentes e campanha com meta.
 - **Doe**: PIX com QR Code e "copia e cola" (com valores sugeridos), lista do que o projeto precisa, doação de alimentos/materiais, voluntariado e parcerias.
 - **Transparência**: totais recebidos e pagos por período publicado e onde o dinheiro foi aplicado — sem nomes de doadores, fornecedores ou crianças.
@@ -30,6 +31,7 @@ React + TypeScript + Vite + Tailwind · Supabase (PostgreSQL, Auth, Storage) com
 ## Documentação
 | Documento | Conteúdo |
 |---|---|
+| [docs/PRESTACAO.md](docs/PRESTACAO.md) | **Aba “Prestação de contas”** (gráficos + área da equipe com fotos): como ver, ativar e usar |
 | [docs/INSTALACAO.md](docs/INSTALACAO.md) | **Passo a passo**: Supabase, GitHub, publicação na GGsistemas e DNS no Registro.br |
 | [docs/USO.md](docs/USO.md) | Manual de uso e rotina de fechamento mensal |
 | [docs/REGRAS-FINANCEIRAS.md](docs/REGRAS-FINANCEIRAS.md) | Regras de integridade e fórmulas de cada indicador |
@@ -47,6 +49,7 @@ npm run dev
 
 ## Estrutura
 ```
+supabase/prestacao/    SQL único da aba Prestação de contas (simples)
 supabase/migrations/   esquema, regras, segurança (RLS) e cálculos — aplicar em ordem
 supabase/tests/        testes do banco (cenários do escopo)
 supabase/demo/         dados FICTÍCIOS para um projeto de demonstração separado

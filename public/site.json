@@ -12,5 +12,8 @@
   "campanha_titulo": null,
   "campanha_meta": null,
   "campanha_arrecadado": null,
-  "necessidades": []
+  "necessidades": [],
+  "supabase_url": null,
+  "supabase_anon_key": null,
+  "prestacao_demo": false
 }

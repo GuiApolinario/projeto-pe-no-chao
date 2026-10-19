@@ -6,9 +6,10 @@ import { supabase, supabaseConfigurado } from '../lib/supabase';
 import { gerarPixCopiaECola } from '../lib/pix';
 import { data as fmtData, dinheiro, lerDinheiro, mesAno, num } from '../lib/formato';
 import { cx } from '../components/ui';
+import { temBackend, temPrestacao, type ConfigPrestacao } from '../prestacao/config';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-export interface ConfigSite {
+export interface ConfigSite extends ConfigPrestacao {
   necessidades?: { titulo: string; descricao?: string; prioridade?: string }[];
   pix_chave?: string | null; pix_tipo?: string | null; pix_nome?: string | null; pix_cidade?: string | null; banco_texto?: string | null;
   whatsapp?: string | null; instagram?: string | null; email?: string | null; endereco?: string | null; texto_sobre?: string | null;
@@ -42,7 +43,7 @@ export function Pe({ cor, className, espelhar }: { cor: string; className?: stri
   );
 }
 
-function FaixaPes() {
+export function FaixaPes() {
   return (
     <div className="flex items-end justify-center gap-3 py-2" aria-hidden="true">
       {CORES_PES.map((c, i) => <Pe key={c} cor={c} espelhar={i % 2 === 1} className={cx('h-8 w-5', i % 2 ? 'translate-y-1' : '-translate-y-1')} />)}
@@ -67,7 +68,7 @@ export function LayoutSite() {
   const c = useConfigSite();
   const local = useLocation();
   useEffect(() => { setAberto(false); window.scrollTo(0, 0); }, [local.pathname]);
-  const links = [['/', 'Início'], ['/doe', 'Como ajudar'], ...(c?.mostrar_transparencia ? [['/transparencia', 'Transparência']] : []), ['/contato', 'Contato']];
+  const links = [['/', 'Início'], ['/doe', 'Como ajudar'], ...(temPrestacao(c) || c?.mostrar_transparencia ? [[temPrestacao(c) ? '/prestacao-de-contas' : '/transparencia', 'Prestação de contas']] : []), ['/contato', 'Contato']];
   return (
     <div className="flex min-h-screen flex-col bg-white font-sans text-slate-800">
       <a href="#conteudo" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-white focus:px-3 focus:py-2">Pular para o conteúdo</a>
@@ -107,9 +108,9 @@ export function LayoutSite() {
           </div>
           <div className="space-y-2 text-sm">
             <p className="font-semibold text-white">Transparência</p>
-            {c?.mostrar_transparencia && <Link to="/transparencia" className="block hover:text-white">Prestação de contas</Link>}
+            {(temPrestacao(c) || c?.mostrar_transparencia) && <Link to={temPrestacao(c) ? '/prestacao-de-contas' : '/transparencia'} className="block hover:text-white">Prestação de contas</Link>}
             <Link to="/privacidade" className="block hover:text-white">Privacidade e proteção de dados</Link>
-            {supabaseConfigurado && <Link to="/entrar" className="inline-flex items-center gap-1.5 text-slate-400 hover:text-white"><Lock className="h-3.5 w-3.5" />Área da equipe</Link>}
+            {(supabaseConfigurado || temBackend(c)) && <Link to={supabaseConfigurado ? '/entrar' : '/prestacao-de-contas/gerenciar'} className="inline-flex items-center gap-1.5 text-slate-400 hover:text-white"><Lock className="h-3.5 w-3.5" />Área da equipe</Link>}
           </div>
         </div>
         <p className="border-t border-slate-800 py-4 text-center text-xs text-slate-500">© {new Date().getFullYear()} Projeto Pé no Chão · Votorantim/SP</p>
@@ -233,10 +234,10 @@ export function Inicio() {
       <section className="bg-marca-azul">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 py-14 text-center text-white md:flex-row md:text-left">
           <div className="flex-1">
-            <h2 className="font-titulo text-3xl font-extrabold">{c?.mostrar_transparencia ? 'Transparência é parte do nosso jeito de fazer' : 'Vamos conversar?'}</h2>
-            <p className="mt-2 text-blue-100">{c?.mostrar_transparencia ? 'Cada real recebido e cada compra realizada são registrados com comprovante e conferidos antes de entrar na prestação de contas.' : 'Quer conhecer o projeto, ajudar ou propor uma parceria? Fale com a gente.'}</p>
+            <h2 className="font-titulo text-3xl font-extrabold">{temPrestacao(c) || c?.mostrar_transparencia ? 'Transparência é parte do nosso jeito de fazer' : 'Vamos conversar?'}</h2>
+            <p className="mt-2 text-blue-100">{temPrestacao(c) ? 'Veja quanto recebemos, no que usamos cada doação e os comprovantes dos gastos.' : c?.mostrar_transparencia ? 'Cada real recebido e cada compra realizada são registrados com comprovante e conferidos antes de entrar na prestação de contas.' : 'Quer conhecer o projeto, ajudar ou propor uma parceria? Fale com a gente.'}</p>
           </div>
-          {c?.mostrar_transparencia ? <Link to="/transparencia" className="rounded-full bg-white px-7 py-3 font-bold text-marca-azul hover:bg-blue-50">Ver prestação de contas</Link>
+          {temPrestacao(c) || c?.mostrar_transparencia ? <Link to={temPrestacao(c) ? '/prestacao-de-contas' : '/transparencia'} className="rounded-full bg-white px-7 py-3 font-bold text-marca-azul hover:bg-blue-50">Ver prestação de contas</Link>
             : <Link to="/contato" className="rounded-full bg-white px-7 py-3 font-bold text-marca-azul hover:bg-blue-50">Fale com a gente</Link>}
         </div>
       </section>

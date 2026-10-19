@@ -117,17 +117,25 @@ export function Aviso({ tom = 'info', children, titulo }: { tom?: 'info' | 'aten
 }
 
 // ------------------------------------------------------------------ modal
+const pilhaModais: symbol[] = []; // janelas abertas; o Esc fecha só a mais recente
+
 export function Modal({ aberto, titulo, onFechar, children, rodape, largura = 'max-w-2xl' }: { aberto: boolean; titulo: ReactNode; onFechar: () => void; children: ReactNode; rodape?: ReactNode; largura?: string }) {
   const ref = useRef<HTMLDivElement>(null);
+  // onFechar costuma ser uma função nova a cada renderização; guardá-la em ref evita
+  // refazer o efeito (e roubar o foco de quem está digitando) a cada tecla.
+  const fechar = useRef(onFechar);
+  fechar.current = onFechar;
   useEffect(() => {
     if (!aberto) return;
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && onFechar();
+    const id = Symbol('modal');
+    pilhaModais.push(id);
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && pilhaModais[pilhaModais.length - 1] === id && fechar.current();
     document.addEventListener('keydown', esc);
     const anterior = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    ref.current?.focus();
-    return () => { document.removeEventListener('keydown', esc); document.body.style.overflow = anterior; };
-  }, [aberto, onFechar]);
+    if (ref.current && !ref.current.contains(document.activeElement)) ref.current.focus();
+    return () => { document.removeEventListener('keydown', esc); pilhaModais.splice(pilhaModais.indexOf(id), 1); document.body.style.overflow = anterior; };
+  }, [aberto]);
   if (!aberto) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 p-2 sm:p-6" onMouseDown={(e) => e.target === e.currentTarget && onFechar()}>
